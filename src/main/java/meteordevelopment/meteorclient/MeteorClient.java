@@ -133,6 +133,9 @@ public class MeteorClient implements ClientModInitializer {
         // Initialise addons
         AddonManager.ADDONS.forEach(MeteorAddon::onInitialize);
 
+        // Vetmo: Russian display titles/descriptions (internal names untouched)
+        meteordevelopment.meteorclient.utils.misc.VetmoRussian.apply();
+
         // Sort modules after addons have added their own
         Modules.get().sortModules();
 

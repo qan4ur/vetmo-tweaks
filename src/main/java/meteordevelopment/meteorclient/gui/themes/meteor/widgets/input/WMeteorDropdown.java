@@ -34,7 +34,7 @@ public class WMeteorDropdown<T> extends WDropdown<T> implements MeteorWidget {
 
         renderBackground(renderer, this, pressed, mouseOver);
 
-        String text = get().toString();
+        String text = meteordevelopment.meteorclient.utils.misc.VetmoRussian.value(get());
         double w = theme.textWidth(text);
         renderer.text(text, x + pad + maxValueWidth / 2 - w / 2, y + pad, theme.textColor.get(), false);
 
@@ -59,7 +59,7 @@ public class WMeteorDropdown<T> extends WDropdown<T> implements MeteorWidget {
         protected void onCalculateSize() {
             double pad = pad();
 
-            width = pad + theme.textWidth(value.toString()) + pad;
+            width = pad + theme.textWidth(meteordevelopment.meteorclient.utils.misc.VetmoRussian.value(value)) + pad;
             height = pad + theme.textHeight() + pad;
         }
 
@@ -76,7 +76,7 @@ public class WMeteorDropdown<T> extends WDropdown<T> implements MeteorWidget {
 
             color.a = preA;
 
-            String text = value.toString();
+            String text = meteordevelopment.meteorclient.utils.misc.VetmoRussian.value(value);
             renderer.text(text, x + width / 2 - theme.textWidth(text) / 2, y + pad(), theme.textColor.get(), false);
         }
     }

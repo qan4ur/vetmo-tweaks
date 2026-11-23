@@ -146,6 +146,8 @@ public class Modules extends System<Modules> {
 
         for (Module module : this.moduleInstances.values()) {
             int score = Utils.searchLevenshteinDefault(module.title, text, false);
+            // Vetmo: titles are Russian, so also match the English name
+            score = Math.min(score, Utils.searchLevenshteinDefault(module.name, text, false));
             if (Config.get().moduleAliases.get()) {
                 for (String alias : module.aliases) {
                     int aliasScore = Utils.searchLevenshteinDefault(alias, text, false);
@@ -165,7 +167,7 @@ public class Modules extends System<Modules> {
             int lowest = Integer.MAX_VALUE;
             for (SettingGroup sg : module.settings) {
                 for (Setting<?> setting : sg) {
-                    int score = Utils.searchLevenshteinDefault(setting.title, text, false);
+                    int score = Math.min(Utils.searchLevenshteinDefault(setting.title, text, false), Utils.searchLevenshteinDefault(setting.name, text, false));
                     if (score < lowest) lowest = score;
                 }
             }

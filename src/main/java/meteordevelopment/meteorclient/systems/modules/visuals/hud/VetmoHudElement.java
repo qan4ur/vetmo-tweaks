@@ -33,6 +33,12 @@ public class VetmoHudElement extends HudElement {
         this.hudModule = (VetmoHudModule) module;
     }
 
+    /** Visibility is controlled by the module (ClickGUI / bind), not by the HUD element toggle. */
+    @Override
+    public boolean isActive() {
+        return true;
+    }
+
     public Module getModule() {
         return module;
     }

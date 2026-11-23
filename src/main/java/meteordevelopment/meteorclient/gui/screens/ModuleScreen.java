@@ -53,7 +53,7 @@ public class ModuleScreen extends WindowScreen {
 
         if (module.addon != null && module.addon != MeteorClient.ADDON) {
             WHorizontalList addon = add(theme.horizontalList()).expandX().widget();
-            addon.add(theme.label("From: ").color(theme.textSecondaryColor())).widget();
+            addon.add(theme.label("Из: ").color(theme.textSecondaryColor())).widget();
             addon.add(theme.label(module.addon.name).color(module.addon.color)).widget();
         }
 
@@ -73,12 +73,12 @@ public class ModuleScreen extends WindowScreen {
         }
 
         // Bind
-        WSection section = add(theme.section("Bind", true)).expandX().widget();
+        WSection section = add(theme.section("Бинд", true)).expandX().widget();
 
         // Keybind
         WHorizontalList bind = section.add(theme.horizontalList()).expandX().widget();
 
-        bind.add(theme.label("Bind: "));
+        bind.add(theme.label("Бинд: "));
         keybind = bind.add(theme.keybind(module.keybind)).expandX().widget();
         keybind.actionOnSet = () -> Modules.get().setModuleToBind(module);
 
@@ -88,14 +88,14 @@ public class ModuleScreen extends WindowScreen {
         // Toggle on bind release
         WHorizontalList tobr = section.add(theme.horizontalList()).widget();
 
-        tobr.add(theme.label("Toggle on bind release: "));
+        tobr.add(theme.label("Переключать при отпускании: "));
         WCheckbox tobrC = tobr.add(theme.checkbox(module.toggleOnBindRelease)).widget();
         tobrC.action = () -> module.toggleOnBindRelease = tobrC.checked;
 
         // Chat feedback
         WHorizontalList cf = section.add(theme.horizontalList()).widget();
 
-        cf.add(theme.label("Chat Feedback: "));
+        cf.add(theme.label("Сообщения в чат: "));
         WCheckbox cfC = cf.add(theme.checkbox(module.chatFeedback)).widget();
         cfC.action = () -> module.chatFeedback = cfC.checked;
 
@@ -105,7 +105,7 @@ public class ModuleScreen extends WindowScreen {
         WHorizontalList bottom = add(theme.horizontalList()).expandX().widget();
 
         // Active
-        bottom.add(theme.label("Active: "));
+        bottom.add(theme.label("Включён: "));
         active = bottom.add(theme.checkbox(module.isActive())).expandCellX().widget();
         active.action = () -> {
             if (module.isActive() != active.checked) module.toggle();
@@ -117,19 +117,19 @@ public class ModuleScreen extends WindowScreen {
         copy.action = () -> {
             if (toClipboard()) {
                 OkPrompt.create()
-                    .title("Module copied!")
-                    .message("The settings for this module are now in your clipboard.")
-                    .message("You can also copy settings using Ctrl+C.")
-                    .message("Settings can be imported using Ctrl+V or the paste button.")
+                    .title("Модуль скопирован!")
+                    .message("Настройки этого модуля скопированы в буфер обмена.")
+                    .message("Копировать настройки можно также через Ctrl+C.")
+                    .message("Вставить настройки можно через Ctrl+V или кнопку вставки.")
                     .id("config-sharing-guide")
                     .show();
             }
         };
-        copy.tooltip = "Copy config";
+        copy.tooltip = "Копировать настройки";
 
         // Vetmo Tweaks: reset all settings of this module to defaults (bind is kept)
-        WButton resetAll = sharing.add(theme.button("Reset to defaults")).widget();
-        resetAll.tooltip = "Reset all settings of this module to their default values.";
+        WButton resetAll = sharing.add(theme.button("Сбросить")).widget();
+        resetAll.tooltip = "Сбросить все настройки модуля к значениям по умолчанию (бинд сохраняется).";
         resetAll.action = () -> {
             module.settings.reset();
             if (parent instanceof WidgetScreen p) p.reload();
@@ -138,7 +138,7 @@ public class ModuleScreen extends WindowScreen {
 
         WButton paste = sharing.add(theme.button(GuiRenderer.PASTE)).widget();
         paste.action = this::fromClipboard;
-        paste.tooltip = "Paste config";
+        paste.tooltip = "Вставить настройки";
     }
 
     @Override

@@ -217,9 +217,10 @@ public class Hud extends System<Hud> implements Iterable<HudElement> {
             resetToDefaultElements = false;
         }
 
-        if (!(active || HudEditorScreen.isOpen())) return;
+        boolean meteorElements = active || HudEditorScreen.isOpen();
 
         for (HudElement element : elements) {
+            if (!meteorElements && !(element instanceof meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudElement)) continue;
             if (element.isActive() || element.isInEditor()) {
                 element.tick(HudRenderer.INSTANCE);
             }
@@ -230,13 +231,17 @@ public class Hud extends System<Hud> implements Iterable<HudElement> {
     private void onRender(Render2DEvent event) {
         if (Utils.isLoading()) return;
 
-        if (!active || shouldHideHud()) return;
+        // Vetmo Tweaks: Vetmo visual elements are switched by their modules, not by the HUD toggle
+        if (shouldHideHud()) return;
         if ((mc.options.hudHidden || mc.inGameHud.getDebugHud().shouldShowDebugHud()) && !HudEditorScreen.isOpen()) return;
+
+        boolean meteorElements = active || HudEditorScreen.isOpen();
 
         HudRenderer.INSTANCE.begin(event.drawContext);
 
         for (HudElement element : elements) {
             element.updatePos();
+            if (!meteorElements && !(element instanceof meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudElement)) continue;
 
             if (element.isActive() || element.isInEditor()) {
                 element.render(HudRenderer.INSTANCE);

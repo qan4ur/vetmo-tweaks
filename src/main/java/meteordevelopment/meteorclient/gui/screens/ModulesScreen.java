@@ -41,8 +41,8 @@ public class ModulesScreen extends TabScreen {
 
         // Help
         WVerticalList help = add(theme.verticalList()).pad(4).bottom().widget();
-        help.add(theme.label("Left click - Toggle module"));
-        help.add(theme.label("Right click - Open module settings"));
+        help.add(theme.label("ЛКМ - включить/выключить модуль"));
+        help.add(theme.label("ПКМ - открыть настройки модуля"));
     }
 
     @Override
@@ -54,7 +54,7 @@ public class ModulesScreen extends TabScreen {
     // Category
 
     protected WWindow createCategory(WContainer c, Category category, List<Module> moduleList) {
-        WWindow w = theme.window(category.name);
+        WWindow w = theme.window(category.title);
         w.id = category.name;
         w.padding = 0;
         w.spacing = 0;
@@ -83,7 +83,7 @@ public class ModulesScreen extends TabScreen {
             Set<Module> modules = Modules.get().searchTitles(text);
 
             if (!modules.isEmpty()) {
-                WSection section = w.add(theme.section("Modules")).expandX().widget();
+                WSection section = w.add(theme.section("Модули")).expandX().widget();
                 section.spacing = 0;
 
                 int count = 0;
@@ -98,7 +98,7 @@ public class ModulesScreen extends TabScreen {
             modules = Modules.get().searchSettingTitles(text);
 
             if (!modules.isEmpty()) {
-                WSection section = w.add(theme.section("Settings")).expandX().widget();
+                WSection section = w.add(theme.section("Настройки")).expandX().widget();
                 section.spacing = 0;
 
                 int count = 0;
@@ -112,7 +112,7 @@ public class ModulesScreen extends TabScreen {
     }
 
     protected WWindow createSearch(WContainer c) {
-        WWindow w = theme.window("Search");
+        WWindow w = theme.window("Поиск");
         w.id = "search";
 
         if (theme.categoryIcons()) {
@@ -126,7 +126,7 @@ public class ModulesScreen extends TabScreen {
 
         WVerticalList l = theme.verticalList();
 
-        WTextBox text = w.add(theme.textBox("")).minWidth(140).expandX().widget();
+        WTextBox text = w.add(theme.textBox("", "Поиск...")).minWidth(140).expandX().widget();
         text.setFocused(true);
         text.action = () -> {
             l.clear();
@@ -145,7 +145,7 @@ public class ModulesScreen extends TabScreen {
         boolean hasFavorites = Modules.get().getAll().stream().anyMatch(module -> module.favorite);
         if (!hasFavorites) return null;
 
-        WWindow w = theme.window("Favorites");
+        WWindow w = theme.window("Избранное");
         w.id = "favorites";
         w.padding = 0;
         w.spacing = 0;

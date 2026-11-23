@@ -102,7 +102,7 @@ public class DefaultSettingsWidgetFactory extends SettingsWidgetFactory {
     }
 
     private void group(WVerticalList list, SettingGroup group, String filter, List<RemoveInfo> removeInfoList) {
-        WSection section = list.add(theme.section(group.name, group.sectionExpanded)).expandX().widget();
+        WSection section = list.add(theme.section(group.title, group.sectionExpanded)).expandX().widget();
         section.action = () -> group.sectionExpanded = section.isExpanded();
 
         WTable table = section.add(theme.table()).expandX().widget();

@@ -18,7 +18,7 @@ public class ESPBlockDataScreen extends WindowScreen {
     private final BlockDataSetting<ESPBlockData> setting;
 
     public ESPBlockDataScreen(GuiTheme theme, ESPBlockData blockData, Block block, BlockDataSetting<ESPBlockData> setting) {
-        super(theme, "Configure Block");
+        super(theme, "Настройка блока");
 
         this.blockData = blockData;
         this.block = block;
@@ -91,6 +91,7 @@ public class ESPBlockDataScreen extends WindowScreen {
             .build()
         );
 
+        meteordevelopment.meteorclient.utils.misc.VetmoRussian.applySettings("block-esp-block", settings);
         settings.onActivated();
         add(theme.settings(settings)).expandX();
     }

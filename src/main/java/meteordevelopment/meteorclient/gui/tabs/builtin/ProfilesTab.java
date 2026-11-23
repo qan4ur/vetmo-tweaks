@@ -28,7 +28,7 @@ import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class ProfilesTab extends Tab {
     public ProfilesTab() {
-        super("Profiles");
+        super("Профили");
     }
 
     @Override

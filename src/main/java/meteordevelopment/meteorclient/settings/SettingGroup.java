@@ -17,12 +17,15 @@ import java.util.List;
 
 public class SettingGroup implements ISerializable<SettingGroup>, Iterable<Setting<?>> {
     public final String name;
+    /** Vetmo: display title (name stays the config key). */
+    public String title;
     public boolean sectionExpanded;
 
     final List<Setting<?>> settings = new ArrayList<>(1);
 
     SettingGroup(String name, boolean sectionExpanded) {
         this.name = name;
+        this.title = meteordevelopment.meteorclient.utils.misc.VetmoRussian.group(name);
         this.sectionExpanded = sectionExpanded;
     }
 

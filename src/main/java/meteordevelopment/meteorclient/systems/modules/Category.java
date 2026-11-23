@@ -10,11 +10,14 @@ import net.minecraft.item.Items;
 
 public class Category {
     public final String name;
+    /** Vetmo: display title (name stays the key for window configs). */
+    public String title;
     public final ItemStack icon;
     private final int nameHash;
 
     public Category(String name, ItemStack icon) {
         this.name = name;
+        this.title = name;
         this.nameHash = name.hashCode();
         this.icon = icon == null ? Items.AIR.getDefaultStack() : icon;
     }

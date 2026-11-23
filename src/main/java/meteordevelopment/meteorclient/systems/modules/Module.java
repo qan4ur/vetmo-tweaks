@@ -31,8 +31,8 @@ public abstract class Module implements ISerializable<Module>, Comparable<Module
 
     public final Category category;
     public final String name;
-    public final String title;
-    public final String description;
+    public String title;       // Vetmo: display only, translated by VetmoRussian
+    public String description; // Vetmo: display only, translated by VetmoRussian
     public final String[] aliases;
     public final Color color;
 
@@ -109,7 +109,7 @@ public abstract class Module implements ISerializable<Module>, Comparable<Module
     public void sendToggledMsg() {
         if (Config.get().chatFeedback.get() && chatFeedback) {
             ChatUtils.forceNextPrefixClass(getClass());
-            ChatUtils.sendMsg(this.hashCode(), Formatting.GRAY, "Toggled (highlight)%s(default) %s(default).", title, isActive() ? Formatting.GREEN + "on" : Formatting.RED + "off");
+            ChatUtils.sendMsg(this.hashCode(), Formatting.GRAY, "(highlight)%s(default) %s(default).", title, isActive() ? Formatting.GREEN + "включён" : Formatting.RED + "выключен");
         }
     }
 

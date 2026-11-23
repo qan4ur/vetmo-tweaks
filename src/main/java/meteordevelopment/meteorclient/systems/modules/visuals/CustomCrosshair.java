@@ -388,7 +388,7 @@ public class CustomCrosshair extends Module implements VetmoHudModule {
 
     private boolean hudWillRender() {
         Hud hud = Hud.get();
-        if (hud == null || !hud.active) return false;
+        if (hud == null) return false;
 
         if (mc.currentScreen != null && !(mc.currentScreen instanceof WidgetScreen)) {
             Setting<?> hideInMenus = hud.settings.get("hide-in-menus");
