@@ -1,19 +1,16 @@
 {
   "schemaVersion": 1,
-  "name": "Meteor Client",
-  "id": "meteor-client",
+  "name": "Vetmo Tweaks",
+  "id": "vetmo-tweaks",
   "version": "${version}",
-  "description": "Based utility mod.",
+  "description": "Blood-moon red visual PvP client for Fabric 1.21.7: custom crosshair, Target HUD, hit effects, HUD panels and a curated set of render modules. Fork of Meteor Client by MeteorDevelopment (GPL-3.0).",
   "authors": [
-    "MineGame159",
-    "squidoodly",
-    "seasnail"
+    "qan4ur"
   ],
   "contact": {
-    "homepage": "https://meteorclient.com",
-    "issues": "https://github.com/MeteorDevelopment/meteor-client/issues",
-    "sources": "https://github.com/MeteorDevelopment/meteor-client",
-    "discord": "https://meteorclient.com/discord"
+    "homepage": "https://github.com/qan4ur/vetmo-tweaks",
+    "issues": "https://github.com/qan4ur/vetmo-tweaks/issues",
+    "sources": "https://github.com/qan4ur/vetmo-tweaks"
   },
   "license": "GPL-3.0",
   "icon": "assets/meteor-client/icon.png",
@@ -35,14 +32,9 @@
   ],
   "accessWidener": "meteor-client.accesswidener",
   "custom": {
-    "meteor-client:build_number": "${build_number}",
-    "meteor-client:color": "145,61,226",
-    "meteor-client:commit": "${commit}",
-    "modmenu": {
-      "links": {
-        "modmenu.discord": "https://meteorclient.com/discord"
-      }
-    }
+    "vetmo-tweaks:build_number": "${build_number}",
+    "vetmo-tweaks:color": "200,20,40",
+    "vetmo-tweaks:commit": "${commit}"
   },
   "depends": {
     "java": ">=21",

@@ -59,32 +59,32 @@ public class Config extends System<Config> {
 
     public final Setting<Boolean> titleScreenCredits = sgVisual.add(new BoolSetting.Builder()
         .name("title-screen-credits")
-        .description("Show Meteor credits on title screen")
+        .description("Show Vetmo Tweaks credits on title screen")
         .defaultValue(true)
         .build()
     );
 
     public final Setting<Boolean> titleScreenSplashes = sgVisual.add(new BoolSetting.Builder()
         .name("title-screen-splashes")
-        .description("Show Meteor splash texts on title screen")
+        .description("Show Vetmo Tweaks splash texts on title screen")
         .defaultValue(true)
         .build()
     );
 
     public final Setting<Boolean> customWindowTitle = sgVisual.add(new BoolSetting.Builder()
-        .name("custom-window-title")
+        .name("vetmo-window-title")
         .description("Show custom text in the window title.")
-        .defaultValue(false)
+        .defaultValue(true)
         .onModuleActivated(setting -> mc.updateWindowTitle())
         .onChanged(value -> mc.updateWindowTitle())
         .build()
     );
 
     public final Setting<String> customWindowTitleText = sgVisual.add(new StringSetting.Builder()
-        .name("window-title-text")
+        .name("vetmo-window-title-text")
         .description("The text it displays in the window title.")
         .visible(customWindowTitle::get)
-        .defaultValue("Minecraft {mc_version} - {meteor.name} {meteor.version}")
+        .defaultValue("{meteor.name} | Minecraft {mc_version}")
         .onChanged(value -> mc.updateWindowTitle())
         .build()
     );

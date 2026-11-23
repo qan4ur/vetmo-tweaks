@@ -45,7 +45,11 @@ import java.io.File;
 import java.lang.invoke.MethodHandles;
 
 public class MeteorClient implements ClientModInitializer {
-    public static final String MOD_ID = "meteor-client";
+    public static final String MOD_ID = "vetmo-tweaks";
+    /** Asset namespace (textures, shaders, fonts) kept from Meteor Client. */
+    public static final String ASSETS_ID = "meteor-client";
+    /** Old Meteor Client config folder, migrated on first launch. */
+    public static final String LEGACY_FOLDER_NAME = "meteor-client";
     public static final ModMetadata MOD_META;
     public static final String NAME;
     public static final Version VERSION;
@@ -94,6 +98,7 @@ public class MeteorClient implements ClientModInitializer {
 
         // Pre-load
         if (!FOLDER.exists()) {
+            migrateLegacyConfig();
             FOLDER.getParentFile().mkdirs();
             FOLDER.mkdir();
         }
@@ -192,7 +197,28 @@ public class MeteorClient implements ClientModInitializer {
         wasWidgetScreen = event.screen instanceof WidgetScreen;
     }
 
+    /**
+     * First launch of Vetmo Tweaks: copy everything from the old Meteor Client config folder
+     * (binds, settings, HUD, friends, accounts, waypoints, stashes, profiles). The old folder is left untouched.
+     */
+    private static void migrateLegacyConfig() {
+        java.nio.file.Path legacy = FabricLoader.getInstance().getGameDir().resolve(LEGACY_FOLDER_NAME);
+        if (!java.nio.file.Files.isDirectory(legacy)) return;
+
+        java.nio.file.Path target = FOLDER.toPath();
+        try (java.util.stream.Stream<java.nio.file.Path> paths = java.nio.file.Files.walk(legacy)) {
+            for (java.nio.file.Path source : (Iterable<java.nio.file.Path>) paths::iterator) {
+                java.nio.file.Path dest = target.resolve(legacy.relativize(source).toString());
+                if (java.nio.file.Files.isDirectory(source)) java.nio.file.Files.createDirectories(dest);
+                else java.nio.file.Files.copy(source, dest, java.nio.file.StandardCopyOption.COPY_ATTRIBUTES);
+            }
+            LOG.info("Copied Meteor Client config from {} to {}", legacy, target);
+        } catch (Exception e) {
+            LOG.error("Failed to copy Meteor Client config from {}", legacy, e);
+        }
+    }
+
     public static Identifier identifier(String path) {
-        return Identifier.of(MeteorClient.MOD_ID, path);
+        return Identifier.of(MeteorClient.ASSETS_ID, path);
     }
 }

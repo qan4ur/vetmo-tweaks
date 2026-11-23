@@ -11,7 +11,7 @@ base {
     val suffix = if (project.hasProperty("build_number")) {
         project.findProperty("build_number")
     } else {
-        "local"
+        "1.0.0"
     }
 
     version = properties["minecraft_version"] as String + "-" + suffix
@@ -114,7 +114,7 @@ afterEvaluate {
 
 tasks {
     processResources {
-        val buildNumber = project.findProperty("build_number")?.toString() ?: ""
+        val buildNumber = project.findProperty("build_number")?.toString() ?: "1.0.0"
         val commit = project.findProperty("commit")?.toString() ?: ""
 
         val propertyMap = mapOf(

@@ -293,7 +293,6 @@ public class TargetHud extends Module {
     private float health, maxHealth = 20, absorption;
     private int hurtTime;
     private SkinTextures skin;
-    private boolean isPlayer;
     private float distance;
     private final ItemStack[] items = new ItemStack[5];
 
@@ -368,7 +367,6 @@ public class TargetHud extends Module {
         maxHealth = Math.max(1, e.getMaxHealth());
         absorption = Math.max(0, e.getAbsorptionAmount());
         hurtTime = e.hurtTime;
-        isPlayer = e instanceof AbstractClientPlayerEntity;
         skin = e instanceof AbstractClientPlayerEntity p ? p.getSkinTextures() : null;
         distance = e == mc.player ? 0 : mc.player.distanceTo(e);
         for (int i = 0; i < 4; i++) items[i] = e.getEquippedStack(ARMOR_SLOTS[i]);

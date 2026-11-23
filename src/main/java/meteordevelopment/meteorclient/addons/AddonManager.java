@@ -31,12 +31,12 @@ public class AddonManager {
 
                 @Override
                 public String getWebsite() {
-                    return "https://meteorclient.com";
+                    return "https://github.com/qan4ur/vetmo-tweaks";
                 }
 
                 @Override
                 public GithubRepo getRepo() {
-                    return new GithubRepo("MeteorDevelopment", "meteor-client");
+                    return new GithubRepo("qan4ur", "vetmo-tweaks");
                 }
 
                 @Override
