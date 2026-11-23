@@ -130,9 +130,6 @@ public class Hud extends System<Hud> implements Iterable<HudElement> {
         register(PotionTimersHud.INFO);
         register(CombatHud.INFO);
 
-        // Vetmo Tweaks: one element type per on-screen Visuals module
-        meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHud.register(this);
-
         // Default config
         if (isFirstInit) resetToDefaultElements();
     }
@@ -217,10 +214,9 @@ public class Hud extends System<Hud> implements Iterable<HudElement> {
             resetToDefaultElements = false;
         }
 
-        boolean meteorElements = active || HudEditorScreen.isOpen();
+        if (!(active || HudEditorScreen.isOpen())) return;
 
         for (HudElement element : elements) {
-            if (!meteorElements && !(element instanceof meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudElement)) continue;
             if (element.isActive() || element.isInEditor()) {
                 element.tick(HudRenderer.INSTANCE);
             }
@@ -231,18 +227,13 @@ public class Hud extends System<Hud> implements Iterable<HudElement> {
     private void onRender(Render2DEvent event) {
         if (Utils.isLoading()) return;
 
-        // Vetmo Tweaks: Vetmo visual elements are switched by their modules, not by the HUD toggle
-        if (shouldHideHud()) return;
+        if (!active || shouldHideHud()) return;
         if ((mc.options.hudHidden || mc.inGameHud.getDebugHud().shouldShowDebugHud()) && !HudEditorScreen.isOpen()) return;
-
-        boolean meteorElements = active || HudEditorScreen.isOpen();
 
         HudRenderer.INSTANCE.begin(event.drawContext);
 
         for (HudElement element : elements) {
             element.updatePos();
-            if (!meteorElements && !(element instanceof meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudElement)) continue;
-
             if (element.isActive() || element.isInEditor()) {
                 element.render(HudRenderer.INSTANCE);
             }

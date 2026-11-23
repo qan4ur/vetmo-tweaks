@@ -262,11 +262,6 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
         if (hovered != null && verticalAmount != 0) {
             double step = verticalAmount > 0 ? 0.05 : -0.05;
 
-            if (hovered instanceof meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudElement vetmo) {
-                vetmo.scaleBy(step);
-                return true;
-            }
-
             for (meteordevelopment.meteorclient.settings.SettingGroup group : hovered.settings) {
                 for (meteordevelopment.meteorclient.settings.Setting<?> setting : group) {
                     if (setting instanceof meteordevelopment.meteorclient.settings.DoubleSetting ds && setting.name.equals("scale")) {

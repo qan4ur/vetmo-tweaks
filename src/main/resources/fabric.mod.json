@@ -3,7 +3,7 @@
   "name": "Vetmo Tweaks",
   "id": "vetmo-tweaks",
   "version": "${version}",
-  "description": "Blood-moon red visual PvP client for Fabric 1.21.7: custom crosshair, Target HUD, hit effects, HUD panels and a curated set of render modules. Fork of Meteor Client by MeteorDevelopment (GPL-3.0).",
+  "description": "Curated Meteor Client modules with a Russian interface and a red theme. Visual modules live in the separate Vetmos mod. Fork of Meteor Client by MeteorDevelopment (GPL-3.0).",
   "authors": [
     "qan4ur"
   ],

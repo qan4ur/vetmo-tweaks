@@ -13,7 +13,6 @@ public class Categories {
     public static final Category Player = new Category("Player", Items.ARMOR_STAND.getDefaultStack());
     public static final Category Render = new Category("Render", Items.GLASS.getDefaultStack());
     public static final Category World = new Category("World", Items.GRASS_BLOCK.getDefaultStack());
-    public static final Category Visuals = new Category("Visuals", Items.RED_DYE.getDefaultStack());
 
     public static boolean REGISTERING;
 
@@ -24,7 +23,6 @@ public class Categories {
         Modules.registerCategory(Player);
         Modules.registerCategory(Render);
         Modules.registerCategory(World);
-        Modules.registerCategory(Visuals);
 
         // Addons
         AddonManager.ADDONS.forEach(MeteorAddon::onRegisterCategories);
