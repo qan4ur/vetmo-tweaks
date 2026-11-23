@@ -220,4 +220,9 @@ publishing {
     }
 }
 
-sourceSets.main { java { exclude("**/modules/visuals/**", "**/mixin/vetmo/**") } } //TMP
+val vetmoReady = listOf( //TMP
+    "VetmoHudRender", "VetmoRender", "ArmorHud", "ComboCounter", "CooldownsHud", "CustomCrosshair", "HitColor", "HitParticles",
+    "Keystrokes", "KillEffect", "LowHpWarning", "PotionHud", "TargetHud", "TotemPopCounter",
+    "VetmoInGameHudMixin", "VetmoOverlayTextureAccessor", "VetmoPotionHudMixin"
+) //TMP
+sourceSets.main { java { exclude { e -> val p = e.relativePath.pathString; (p.contains("modules/visuals/") || p.contains("mixin/vetmo/")) && e.file.isFile && vetmoReady.none { p.endsWith("/$it.java") } } } } //TMP

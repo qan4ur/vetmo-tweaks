@@ -140,7 +140,10 @@
     "WorldChunkMixin",
     "WorldRendererAccessor",
     "WorldRendererMixin",
-    "YggdrasilMinecraftSessionServiceAccessor"
+    "YggdrasilMinecraftSessionServiceAccessor",
+    "vetmo.VetmoInGameHudMixin",
+    "vetmo.VetmoOverlayTextureAccessor",
+    "vetmo.VetmoPotionHudMixin"
   ],
   "injectors": {
     "defaultRequire": 1

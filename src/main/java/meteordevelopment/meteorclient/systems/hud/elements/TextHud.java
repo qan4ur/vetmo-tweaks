@@ -128,7 +128,7 @@ public class TextHud extends HudElement {
         .name("background-color")
         .description("Color used for the background.")
         .visible(background::get)
-        .defaultValue(new SettingColor(25, 25, 25, 50))
+        .defaultValue(new SettingColor(30, 5, 8, 100))
         .build()
     );
 

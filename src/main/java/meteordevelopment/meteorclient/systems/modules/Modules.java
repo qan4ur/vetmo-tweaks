@@ -22,6 +22,7 @@ import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.player.*;
 import meteordevelopment.meteorclient.systems.modules.render.*;
 import meteordevelopment.meteorclient.systems.modules.render.blockesp.BlockESP;
+import meteordevelopment.meteorclient.systems.modules.visuals.*;
 import meteordevelopment.meteorclient.systems.modules.world.*;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
@@ -397,5 +398,17 @@ public class Modules extends System<Modules> {
     }
 
     private void initVisuals() {
+        add(new ArmorHud());
+        add(new ComboCounter());
+        add(new CooldownsHud());
+        add(new CustomCrosshair());
+        add(new HitColor());
+        add(new HitParticles());
+        add(new Keystrokes());
+        add(new KillEffect());
+        add(new LowHpWarning());
+        add(new PotionHud());
+        add(new TargetHud());
+        add(new TotemPopCounter());
     }
 }
