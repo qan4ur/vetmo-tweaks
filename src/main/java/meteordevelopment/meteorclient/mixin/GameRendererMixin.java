@@ -17,12 +17,8 @@ import meteordevelopment.meteorclient.mixininterface.IVec3d;
 import meteordevelopment.meteorclient.renderer.MeteorRenderPipelines;
 import meteordevelopment.meteorclient.renderer.Renderer3D;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.player.LiquidInteract;
-import meteordevelopment.meteorclient.systems.modules.player.NoMiningTrace;
 import meteordevelopment.meteorclient.systems.modules.render.Freecam;
-import meteordevelopment.meteorclient.systems.modules.render.NoRender;
 import meteordevelopment.meteorclient.systems.modules.render.Zoom;
-import meteordevelopment.meteorclient.systems.modules.world.HighwayBuilder;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.render.NametagUtils;
 import meteordevelopment.meteorclient.utils.render.RenderUtils;
@@ -124,34 +120,6 @@ public abstract class GameRendererMixin {
         MeteorClient.EVENT_BUS.post(RenderAfterWorldEvent.get());
     }
 
-    @ModifyReturnValue(method = "findCrosshairTarget", at = @At("RETURN"))
-    private HitResult onUpdateTargetedEntity(HitResult original, @Local HitResult hitResult) {
-        if (Modules.get().get(NoMiningTrace.class).canWork(original instanceof EntityHitResult ehr ? ehr.getEntity() : null) && hitResult.getType() == HitResult.Type.BLOCK) {
-            return hitResult;
-        }
-        return original;
-    }
-
-    @ModifyExpressionValue(method = "findCrosshairTarget", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;raycast(DFZ)Lnet/minecraft/util/hit/HitResult;"))
-    private HitResult modifyRaycastResult(HitResult original, Entity entity, double blockInteractionRange, double entityInteractionRange, float tickProgress, @Local(ordinal = 0, argsOnly = true) double maxDistance) {
-        if (!Modules.get().isActive(LiquidInteract.class)) return original;
-        if (original.getType() != HitResult.Type.MISS) return original;
-
-        return entity.raycast(maxDistance, tickProgress, true);
-    }
-
-    @Inject(method = "showFloatingItem", at = @At("HEAD"), cancellable = true)
-    private void onShowFloatingItem(ItemStack floatingItem, CallbackInfo info) {
-        if (floatingItem.getItem() == Items.TOTEM_OF_UNDYING && Modules.get().get(NoRender.class).noTotemAnimation()) {
-            info.cancel();
-        }
-    }
-
-    @ModifyExpressionValue(method = "renderWorld", at = @At(value = "INVOKE", target = "Ljava/lang/Math;max(FF)F", ordinal = 0))
-    private float applyCameraTransformationsMathHelperLerpProxy(float original) {
-        return Modules.get().get(NoRender.class).noNausea() ? 0 : original;
-    }
-
     @ModifyReturnValue(method = "getFov", at = @At("RETURN"))
     private float modifyFov(float original) {
         return MeteorClient.EVENT_BUS.post(GetFovEvent.get(original)).fov;
@@ -165,9 +133,7 @@ public abstract class GameRendererMixin {
     @Inject(method = "updateCrosshairTarget", at = @At("HEAD"), cancellable = true)
     private void updateTargetedEntityInvoke(float tickDelta, CallbackInfo info) {
         Freecam freecam = Modules.get().get(Freecam.class);
-        boolean highwayBuilder = Modules.get().isActive(HighwayBuilder.class);
-
-        if ((freecam.isActive() || highwayBuilder) && client.getCameraEntity() != null && !freecamSet) {
+        if (freecam.isActive() && client.getCameraEntity() != null && !freecamSet) {
             info.cancel();
             Entity cameraE = client.getCameraEntity();
 
@@ -182,19 +148,14 @@ public abstract class GameRendererMixin {
             float lastYaw = cameraE.lastYaw;
             float lastPitch = cameraE.lastPitch;
 
-            if (highwayBuilder) {
-                cameraE.setYaw(camera.getYaw());
-                cameraE.setPitch(camera.getPitch());
-            } else {
-                ((IVec3d) cameraE.getPos()).meteor$set(freecam.pos.x, freecam.pos.y - cameraE.getEyeHeight(cameraE.getPose()), freecam.pos.z);
-                cameraE.lastX = freecam.prevPos.x;
-                cameraE.lastY = freecam.prevPos.y - cameraE.getEyeHeight(cameraE.getPose());
-                cameraE.lastZ = freecam.prevPos.z;
-                cameraE.setYaw(freecam.yaw);
-                cameraE.setPitch(freecam.pitch);
-                cameraE.lastYaw = freecam.lastYaw;
-                cameraE.lastPitch = freecam.lastPitch;
-            }
+            ((IVec3d) cameraE.getPos()).meteor$set(freecam.pos.x, freecam.pos.y - cameraE.getEyeHeight(cameraE.getPose()), freecam.pos.z);
+            cameraE.lastX = freecam.prevPos.x;
+            cameraE.lastY = freecam.prevPos.y - cameraE.getEyeHeight(cameraE.getPose());
+            cameraE.lastZ = freecam.prevPos.z;
+            cameraE.setYaw(freecam.yaw);
+            cameraE.setPitch(freecam.pitch);
+            cameraE.lastYaw = freecam.lastYaw;
+            cameraE.lastPitch = freecam.lastPitch;
 
             freecamSet = true;
             updateCrosshairTarget(tickDelta);

@@ -10,7 +10,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.render.Fullbright;
-import meteordevelopment.meteorclient.systems.modules.render.NoRender;
 import meteordevelopment.meteorclient.systems.modules.render.Xray;
 import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.entity.LivingEntity;
@@ -39,8 +38,4 @@ public abstract class LightmapTextureManagerMixin {
         }
     }
 
-    @Inject(method = "getDarkness", at = @At("HEAD"), cancellable = true)
-	private void getDarknessFactor(LivingEntity entity, float factor, float tickProgress, CallbackInfoReturnable<Float> info) {
-		if (Modules.get().get(NoRender.class).noDarkness()) info.setReturnValue(0.0f);
-	}
 }

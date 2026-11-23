@@ -11,8 +11,6 @@ import meteordevelopment.meteorclient.events.entity.DropItemsEvent;
 import meteordevelopment.meteorclient.events.entity.player.*;
 import meteordevelopment.meteorclient.mixininterface.IClientPlayerInteractionManager;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.player.BreakDelay;
-import meteordevelopment.meteorclient.systems.modules.player.SpeedMine;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
@@ -67,19 +65,6 @@ public abstract class ClientPlayerInteractionManagerMixin implements IClientPlay
     @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
     private void onAttackBlock(BlockPos blockPos, Direction direction, CallbackInfoReturnable<Boolean> info) {
         if (MeteorClient.EVENT_BUS.post(StartBreakingBlockEvent.get(blockPos, direction)).isCancelled()) info.cancel();
-        else {
-            SpeedMine sm = Modules.get().get(SpeedMine.class);
-            BlockState state = mc.world.getBlockState(blockPos);
-
-            if (!sm.instamine() || !sm.filter(state.getBlock())) return;
-
-            if (state.calcBlockBreakingDelta(mc.player, mc.world, blockPos) > 0.5f) {
-                breakBlock(blockPos);
-                networkHandler.sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, blockPos, direction));
-                networkHandler.sendPacket(new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, blockPos, direction));
-                info.setReturnValue(true);
-            }
-        }
     }
 
     @Inject(method = "interactBlock", at = @At("HEAD"), cancellable = true)
@@ -118,16 +103,6 @@ public abstract class ClientPlayerInteractionManagerMixin implements IClientPlay
     private void creativeBreakDelayChange2(ClientPlayerInteractionManager interactionManager, int value) {
         BlockBreakingCooldownEvent event = MeteorClient.EVENT_BUS.post(BlockBreakingCooldownEvent.get(value));
         blockBreakingCooldown = event.cooldown;
-    }
-
-    @ModifyExpressionValue(method = "method_41930", at = @At(value = "INVOKE", target = "Lnet/minecraft/block/BlockState;calcBlockBreakingDelta(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/world/BlockView;Lnet/minecraft/util/math/BlockPos;)F"))
-    private float modifyBlockBreakingDelta(float original) {
-        if (Modules.get().get(BreakDelay.class).preventInstaBreak() && original >= 1) {
-            BlockBreakingCooldownEvent event = MeteorClient.EVENT_BUS.post(BlockBreakingCooldownEvent.get(blockBreakingCooldown));
-            blockBreakingCooldown = event.cooldown;
-            return 0;
-        }
-        return original;
     }
 
     @Inject(method = "breakBlock", at = @At("HEAD"), cancellable = true)

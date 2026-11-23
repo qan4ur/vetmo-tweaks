@@ -8,8 +8,6 @@ package meteordevelopment.meteorclient.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import meteordevelopment.meteorclient.mixininterface.IEntityRenderState;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.combat.Hitboxes;
-import meteordevelopment.meteorclient.systems.modules.render.NoRender;
 import meteordevelopment.meteorclient.utils.entity.fakeplayer.FakePlayerEntity;
 import meteordevelopment.meteorclient.utils.render.postprocess.PostProcessShaders;
 import net.minecraft.client.render.Camera;
@@ -49,31 +47,6 @@ public abstract class EntityRenderDispatcherMixin {
         }
     }
 
-    // Hitboxes
-
-    @Unique
-    private static Entity renderHitboxEntity;
-
-    @Inject(method = "renderHitboxes(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/entity/state/EntityRenderState;Lnet/minecraft/client/render/entity/state/EntityHitboxAndView;Lnet/minecraft/client/render/VertexConsumerProvider;)V", at = @At("HEAD"))
-    private void renderHitboxes$setEntity(MatrixStack matrices, EntityRenderState state, EntityHitboxAndView hitbox, VertexConsumerProvider vertexConsumers, CallbackInfo info) {
-        renderHitboxEntity = ((IEntityRenderState) state).meteor$getEntity();
-    }
-
-    @Inject(method = "renderHitboxes(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/entity/state/EntityRenderState;Lnet/minecraft/client/render/entity/state/EntityHitboxAndView;Lnet/minecraft/client/render/VertexConsumerProvider;)V", at = @At("TAIL"))
-    private void renderHitboxes$unsetEntity(MatrixStack matrices, EntityRenderState state, EntityHitboxAndView hitbox, VertexConsumerProvider vertexConsumers, CallbackInfo info) {
-        renderHitboxEntity = null;
-    }
-
-    @Inject(method = "renderHitbox", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;push()V", shift = At.Shift.AFTER))
-    private static void renderHitbox$scale(MatrixStack matrices, VertexConsumer vertexConsumer, EntityHitbox hitbox, CallbackInfo info) {
-        if (renderHitboxEntity == null) return;
-
-        double v = Modules.get().get(Hitboxes.class).getEntityValue(renderHitboxEntity);
-        if (v == 0) return;
-
-        v += 1;
-        matrices.scale((float) v, (float) v, (float) v);
-    }
 
     // IEntityRenderState
 
@@ -88,7 +61,6 @@ public abstract class EntityRenderDispatcherMixin {
     @Inject(method = "renderShadow", at = @At("HEAD"), cancellable = true)
     private static void onRenderShadow(MatrixStack matrices, VertexConsumerProvider vertexConsumers, EntityRenderState renderState, float opacity, WorldView world, float radius, CallbackInfo info) {
         if (PostProcessShaders.rendering) info.cancel();
-        if (Modules.get().get(NoRender.class).noDeadEntities() && renderState instanceof LivingEntityRenderState livingEntityRenderState && livingEntityRenderState.deathTime > 0) info.cancel();
     }
 
     @Inject(method = "getSquaredDistanceToCamera(Lnet/minecraft/entity/Entity;)D", at = @At("HEAD"), cancellable = true)

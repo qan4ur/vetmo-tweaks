@@ -15,8 +15,6 @@ import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.world.ServerConnectEndEvent;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.misc.AntiPacketKick;
-import meteordevelopment.meteorclient.systems.modules.world.HighwayBuilder;
 import meteordevelopment.meteorclient.systems.proxies.Proxies;
 import meteordevelopment.meteorclient.systems.proxies.Proxy;
 import net.minecraft.network.ClientConnection;
@@ -51,16 +49,6 @@ public abstract class ClientConnectionMixin {
         } else if (MeteorClient.EVENT_BUS.post(new PacketEvent.Receive(packet, (ClientConnection) (Object) this)).isCancelled()) ci.cancel();
     }
 
-    @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))
-    private void disconnect(Text disconnectReason, CallbackInfo ci) {
-        if (Modules.get().get(HighwayBuilder.class).isActive()) {
-            MutableText text = Text.literal("%n%n%s[%sHighway Builder%s] Statistics:%n".formatted(Formatting.GRAY, Formatting.BLUE, Formatting.GRAY));
-            text.append(Modules.get().get(HighwayBuilder.class).getStatsText());
-
-            ((MutableText) disconnectReason).append(text);
-        }
-    }
-
     @Inject(method = "connect(Ljava/net/InetSocketAddress;ZLnet/minecraft/network/ClientConnection;)Lio/netty/channel/ChannelFuture;", at = @At("HEAD"))
     private static void onConnect(InetSocketAddress address, boolean useEpoll, ClientConnection connection, CallbackInfoReturnable<?> cir) {
         MeteorClient.EVENT_BUS.post(ServerConnectEndEvent.get(address));
@@ -76,15 +64,6 @@ public abstract class ClientConnectionMixin {
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;Lio/netty/channel/ChannelFutureListener;)V", at = @At("TAIL"))
     private void onSendPacketTail(Packet<?> packet, @Nullable ChannelFutureListener channelFutureListener, CallbackInfo ci) {
         MeteorClient.EVENT_BUS.post(new PacketEvent.Sent(packet, (ClientConnection) (Object) this));
-    }
-
-    @Inject(method = "exceptionCaught", at = @At("HEAD"), cancellable = true)
-    private void exceptionCaught(ChannelHandlerContext context, Throwable throwable, CallbackInfo ci) {
-        AntiPacketKick apk = Modules.get().get(AntiPacketKick.class);
-        if (!(throwable instanceof TimeoutException) && !(throwable instanceof PacketEncoderException) && apk.catchExceptions()) {
-            if (apk.logExceptions.get()) apk.warning("Caught exception: %s", throwable);
-            ci.cancel();
-        }
     }
 
     @Inject(method = "addHandlers", at = @At("RETURN"))

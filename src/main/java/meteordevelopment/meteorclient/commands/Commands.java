@@ -8,7 +8,6 @@ package meteordevelopment.meteorclient.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import meteordevelopment.meteorclient.commands.commands.*;
-import meteordevelopment.meteorclient.pathing.PathManagers;
 import meteordevelopment.meteorclient.utils.PostInit;
 import net.minecraft.command.CommandSource;
 
@@ -22,21 +21,18 @@ public class Commands {
     public static final CommandDispatcher<CommandSource> DISPATCHER = new CommandDispatcher<>();
     public static final List<Command> COMMANDS = new ArrayList<>();
 
-    @PostInit(dependencies = PathManagers.class)
+    @PostInit
     public static void init() {
         add(new VClipCommand());
         add(new HClipCommand());
         add(new DismountCommand());
         add(new DisconnectCommand());
-        add(new DamageCommand());
         add(new DropCommand());
         add(new EnchantCommand());
-        add(new FakePlayerCommand());
         add(new FriendsCommand());
         add(new CommandsCommand());
         add(new InventoryCommand());
         add(new NbtCommand());
-        add(new NotebotCommand());
         add(new PeekCommand());
         add(new EnderChestCommand());
         add(new ProfilesCommand());
@@ -44,7 +40,6 @@ public class Commands {
         add(new ResetCommand());
         add(new SayCommand());
         add(new ServerCommand());
-        add(new SwarmCommand());
         add(new ToggleCommand());
         add(new SettingCommand());
         add(new SpectateCommand());
@@ -60,8 +55,6 @@ public class Commands {
         add(new RotationCommand());
         add(new WaypointCommand());
         add(new InputCommand());
-        add(new WaspCommand());
-        add(new LocateCommand());
 
         COMMANDS.sort(Comparator.comparing(Command::getName));
     }

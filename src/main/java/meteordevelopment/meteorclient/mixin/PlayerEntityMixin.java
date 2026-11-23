@@ -11,9 +11,6 @@ import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.entity.DropItemsEvent;
 import meteordevelopment.meteorclient.events.entity.player.ClipAtLedgeEvent;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.movement.*;
-import meteordevelopment.meteorclient.systems.modules.player.Reach;
-import meteordevelopment.meteorclient.systems.modules.player.SpeedMine;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.EntityType;
@@ -66,69 +63,5 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     @Inject(method = "isCreative", at = @At("HEAD"), cancellable = true)
     private void onIsCreative(CallbackInfoReturnable<Boolean> info) {
         if (mc.getNetworkHandler() == null) info.setReturnValue(false);
-    }
-
-    @ModifyReturnValue(method = "getBlockBreakingSpeed", at = @At(value = "RETURN"))
-    public float onGetBlockBreakingSpeed(float breakSpeed, BlockState block) {
-        if (!getWorld().isClient) return breakSpeed;
-
-        SpeedMine speedMine = Modules.get().get(SpeedMine.class);
-        if (!speedMine.isActive() || speedMine.mode.get() != SpeedMine.Mode.Normal || !speedMine.filter(block.getBlock())) return breakSpeed;
-
-        float breakSpeedMod = (float) (breakSpeed * speedMine.modifier.get());
-
-        if (mc.crosshairTarget instanceof BlockHitResult bhr) {
-            BlockPos pos = bhr.getBlockPos();
-            if (speedMine.modifier.get() < 1 || (BlockUtils.canInstaBreak(pos, breakSpeed) == BlockUtils.canInstaBreak(pos, breakSpeedMod))) {
-                return breakSpeedMod;
-            } else {
-                return 0.9f / BlockUtils.calcBlockBreakingDelta2(pos, 1);
-            }
-        }
-
-        return breakSpeed;
-    }
-
-    @ModifyReturnValue(method = "getMovementSpeed", at = @At("RETURN"))
-    private float onGetMovementSpeed(float original) {
-        if (!getWorld().isClient) return original;
-        if (!Modules.get().get(NoSlow.class).slowness()) return original;
-
-        float walkSpeed = getAbilities().getWalkSpeed();
-
-        if (original < walkSpeed) {
-            if (isSprinting()) return (float) (walkSpeed * 1.30000001192092896);
-            else return walkSpeed;
-        }
-
-        return original;
-    }
-
-    @Inject(method = "getOffGroundSpeed", at = @At("HEAD"), cancellable = true)
-    private void onGetOffGroundSpeed(CallbackInfoReturnable<Float> info) {
-        if (!getWorld().isClient) return;
-
-        float speed = Modules.get().get(Flight.class).getOffGroundSpeed();
-        if (speed != -1) info.setReturnValue(speed);
-    }
-
-    @WrapWithCondition(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"))
-    private boolean keepSprint$setVelocity(PlayerEntity instance, Vec3d vec3d) {
-        return Modules.get().get(Sprint.class).stopSprinting();
-    }
-
-    @WrapWithCondition(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;setSprinting(Z)V"))
-    private boolean keepSprint$setSprinting(PlayerEntity instance, boolean b) {
-        return Modules.get().get(Sprint.class).stopSprinting();
-    }
-
-    @ModifyReturnValue(method = "getBlockInteractionRange", at = @At("RETURN"))
-    private double modifyBlockInteractionRange(double original) {
-        return Math.max(0, original + Modules.get().get(Reach.class).blockReach());
-    }
-
-    @ModifyReturnValue(method = "getEntityInteractionRange", at = @At("RETURN"))
-    private double modifyEntityInteractionRange(double original) {
-        return Math.max(0, original + Modules.get().get(Reach.class).entityReach());
     }
 }

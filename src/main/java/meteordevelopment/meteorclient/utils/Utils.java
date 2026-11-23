@@ -16,8 +16,6 @@ import meteordevelopment.meteorclient.mixin.*;
 import meteordevelopment.meteorclient.mixininterface.IMinecraftClient;
 import meteordevelopment.meteorclient.settings.StatusEffectAmplifierMapSetting;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.render.BetterTooltips;
-import meteordevelopment.meteorclient.systems.modules.world.Timer;
 import meteordevelopment.meteorclient.utils.misc.Names;
 import meteordevelopment.meteorclient.utils.player.EChestMemory;
 import meteordevelopment.meteorclient.utils.render.PeekScreen;
@@ -107,13 +105,6 @@ public class Utils {
         double tX = mc.player.getX() - mc.player.lastX;
         double tY = mc.player.getY() - mc.player.lastY;
         double tZ = mc.player.getZ() - mc.player.lastZ;
-
-        Timer timer = Modules.get().get(Timer.class);
-        if (timer.isActive()) {
-            tX *= timer.getMultiplier();
-            tY *= timer.getMultiplier();
-            tZ *= timer.getMultiplier();
-        }
 
         tX *= 20;
         tY *= 20;
@@ -294,7 +285,7 @@ public class Utils {
     public static Color getShulkerColor(ItemStack shulkerItem) {
         if (shulkerItem.getItem() instanceof BlockItem blockItem) {
             Block block = blockItem.getBlock();
-            if (block == Blocks.ENDER_CHEST) return BetterTooltips.ECHEST_COLOR;
+            if (block == Blocks.ENDER_CHEST) return new Color(0, 50, 50);
 
             if (block instanceof ShulkerBoxBlock shulkerBlock) {
                 DyeColor dye = shulkerBlock.getColor();

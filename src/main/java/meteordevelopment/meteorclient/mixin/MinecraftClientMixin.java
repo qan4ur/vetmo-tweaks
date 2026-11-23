@@ -22,11 +22,7 @@ import meteordevelopment.meteorclient.gui.WidgetScreen;
 import meteordevelopment.meteorclient.mixininterface.IMinecraftClient;
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.movement.GUIMove;
-import meteordevelopment.meteorclient.systems.modules.player.FastUse;
-import meteordevelopment.meteorclient.systems.modules.player.Multitask;
 import meteordevelopment.meteorclient.systems.modules.render.ESP;
-import meteordevelopment.meteorclient.systems.modules.world.HighwayBuilder;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.misc.CPSUtils;
 import meteordevelopment.meteorclient.utils.misc.MeteorStarscript;
@@ -147,41 +143,6 @@ public abstract class MinecraftClientMixin implements IMinecraftClient {
         if (event.isCancelled()) info.cancel();
     }
 
-    @WrapOperation(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;unpressAll()V"))
-    private void onSetScreenKeyBindingUnpressAll(Operation<Void> op) {
-        Modules modules = Modules.get();
-        if (modules == null) {
-            op.call();
-            return;
-        }
-
-        GUIMove guimove = modules.get(GUIMove.class);
-        if (guimove == null || !guimove.isActive() || guimove.skip()) {
-            op.call();
-            return;
-        }
-
-        GameOptions options = MeteorClient.mc.options;
-        for (KeyBinding kb : KeyBindingAccessor.getKeysById().values()) {
-            if (kb == options.forwardKey) continue;
-            if (kb == options.leftKey) continue;
-            if (kb == options.rightKey) continue;
-            if (kb == options.backKey) continue;
-            if (guimove.sneak.get() && kb == options.sneakKey) continue;
-            if (guimove.sprint.get() && kb == options.sprintKey) continue;
-            if (guimove.jump.get() && kb == options.jumpKey) continue;
-            ((KeyBindingAccessor) kb).invokeReset();
-        }
-    }
-
-    @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;isItemEnabled(Lnet/minecraft/resource/featuretoggle/FeatureSet;)Z"))
-    private void onDoItemUseHand(CallbackInfo ci, @Local ItemStack itemStack) {
-        FastUse fastUse = Modules.get().get(FastUse.class);
-        if (fastUse.isActive()) {
-            itemUseCooldown = fastUse.getItemUseCooldown(itemStack);
-        }
-    }
-
     @ModifyExpressionValue(method = "doItemUse", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;crosshairTarget:Lnet/minecraft/util/hit/HitResult;", ordinal = 1))
     private HitResult doItemUseMinecraftClientCrosshairTargetProxy(HitResult original) {
         return MeteorClient.EVENT_BUS.post(ItemUseCrosshairTargetEvent.get(original)).target;
@@ -207,18 +168,6 @@ public abstract class MinecraftClientMixin implements IMinecraftClient {
         return customTitle;
     }
 
-    // Have to add this condition if we want to draw back a bow using packets, without it getting cancelled by vanilla code
-    @WrapWithCondition(method = "handleInputEvents", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;stopUsingItem(Lnet/minecraft/entity/player/PlayerEntity;)V"))
-    private boolean wrapStopUsing(ClientPlayerInteractionManager instance, PlayerEntity player) {
-        return HB$stopUsingItem();
-    }
-
-    @Unique
-    private boolean HB$stopUsingItem() {
-        HighwayBuilder b = Modules.get().get(HighwayBuilder.class);
-        return !b.isActive() || !b.drawingBow;
-    }
-
     @Inject(method = "onResolutionChanged", at = @At("TAIL"))
     private void onResolutionChanged(CallbackInfo info) {
         MeteorClient.EVENT_BUS.post(ResolutionChangedEvent.get());
@@ -240,29 +189,6 @@ public abstract class MinecraftClientMixin implements IMinecraftClient {
     }
 
     // Multitask
-
-    @ModifyExpressionValue(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
-    private boolean doItemUseModifyIsBreakingBlock(boolean original) {
-        return !Modules.get().isActive(Multitask.class) && original;
-    }
-
-    @ModifyExpressionValue(method = "handleBlockBreaking", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isUsingItem()Z"))
-    private boolean handleBlockBreakingModifyIsUsingItem(boolean original) {
-        return !Modules.get().isActive(Multitask.class) && original;
-    }
-
-    @ModifyExpressionValue(method = "handleInputEvents", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isUsingItem()Z", ordinal = 0))
-    private boolean handleInputEventsModifyIsUsingItem(boolean original) {
-        return !Modules.get().get(Multitask.class).attackingEntities() && original;
-    }
-
-    @Inject(method = "handleInputEvents", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isUsingItem()Z", ordinal = 0, shift = At.Shift.BEFORE))
-    private void handleInputEventsInjectStopUsingItem(CallbackInfo info) {
-        if (Modules.get().get(Multitask.class).attackingEntities() && player.isUsingItem()) {
-            if (!options.useKey.isPressed() && HB$stopUsingItem()) interactionManager.stopUsingItem(player);
-            while (options.useKey.wasPressed());
-        }
-    }
 
     // Glow esp
 

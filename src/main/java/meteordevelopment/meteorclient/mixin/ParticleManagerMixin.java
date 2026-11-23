@@ -7,8 +7,6 @@ package meteordevelopment.meteorclient.mixin;
 
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.world.ParticleEvent;
-import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.render.NoRender;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleManager;
@@ -38,15 +36,5 @@ public abstract class ParticleManagerMixin {
             if (parameters.getType() == ParticleTypes.FLASH) info.setReturnValue(createParticle(parameters, x, y, z, velocityX, velocityY, velocityZ));
             else info.cancel();
         }
-    }
-
-    @Inject(method = "addBlockBreakParticles", at = @At("HEAD"), cancellable = true)
-    private void onAddBlockBreakParticles(BlockPos blockPos, BlockState state, CallbackInfo info) {
-        if (Modules.get().get(NoRender.class).noBlockBreakParticles()) info.cancel();
-    }
-
-    @Inject(method = "addBlockBreakingParticles", at = @At("HEAD"), cancellable = true)
-    private void onAddBlockBreakingParticles(BlockPos blockPos, Direction direction, CallbackInfo info) {
-        if (Modules.get().get(NoRender.class).noBlockBreakParticles()) info.cancel();
     }
 }

@@ -87,15 +87,12 @@ dependencies {
     modCompileOnly("com.viaversion:viafabricplus:${properties["viafabricplus_version"] as String}") { isTransitive = false }
     modCompileOnly("com.viaversion:viafabricplus-api:${properties["viafabricplus_version"] as String}") { isTransitive = false }
 
-    // Baritone (https://github.com/MeteorDevelopment/baritone)
-    modCompileOnly("meteordevelopment:baritone:${properties["baritone_version"] as String}-SNAPSHOT")
     // ModMenu (https://github.com/TerraformersMC/ModMenu)
     modCompileOnly("com.terraformersmc:modmenu:${properties["modmenu_version"] as String}")
 
     // Libraries
     library("meteordevelopment:orbit:${properties["orbit_version"] as String}")
     library("org.meteordev:starscript:${properties["starscript_version"] as String}")
-    library("meteordevelopment:discord-ipc:${properties["discordipc_version"] as String}")
     library("org.reflections:reflections:${properties["reflections_version"] as String}")
     library("io.netty:netty-handler-proxy:${properties["netty_version"] as String}") { isTransitive = false }
     library("io.netty:netty-codec-socks:${properties["netty_version"] as String}") { isTransitive = false }
@@ -158,8 +155,7 @@ tasks {
 
     withType<JavaCompile> {
         options.release = 21
-        options.compilerArgs.add("-Xlint:deprecation")
-        options.compilerArgs.add("-Xlint:unchecked")
+        options.compilerArgs.addAll(listOf("-Xmaxerrs", "10000", "-Xmaxwarns", "0")) //TMP
     }
 
     shadowJar {
@@ -223,3 +219,5 @@ publishing {
         }
     }
 }
+
+sourceSets.main { java { exclude("**/modules/visuals/**", "**/mixin/vetmo/**") } } //TMP

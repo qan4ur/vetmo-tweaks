@@ -7,7 +7,6 @@ package meteordevelopment.meteorclient.mixin;
 
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.render.Xray;
-import meteordevelopment.meteorclient.systems.modules.world.Ambience;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.BlockRenderLayer;
 import net.minecraft.client.render.RenderLayers;
@@ -34,14 +33,6 @@ public abstract class RenderLayersMixin {
         int alpha = Xray.getAlpha(state.getBlockState(), null);
         if (alpha > 0 && alpha < 255) {
             cir.setReturnValue(BlockRenderLayer.TRANSLUCENT);
-        }
-
-        else {
-            Ambience ambience = Modules.get().get(Ambience.class);
-            int a = ambience.lavaColor.get().a;
-            if (ambience.isActive() && ambience.customLavaColor.get() && a > 0 && a < 255) {
-                cir.setReturnValue(BlockRenderLayer.TRANSLUCENT);
-            }
         }
     }
 }

@@ -6,7 +6,6 @@
 package meteordevelopment.meteorclient.utils.tooltip;
 
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import meteordevelopment.meteorclient.systems.modules.render.BetterTooltips;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
@@ -32,13 +31,13 @@ public class MapTooltipComponent implements TooltipComponent, MeteorTooltipData 
 
     @Override
     public int getHeight(TextRenderer textRenderer) {
-        double scale = Modules.get().get(BetterTooltips.class).mapsScale.get();
+        double scale = 1.0;
         return (int) ((128 + 16) * scale) + 2;
     }
 
     @Override
     public int getWidth(TextRenderer textRenderer) {
-        double scale = Modules.get().get(BetterTooltips.class).mapsScale.get();
+        double scale = 1.0;
         return (int) ((128 + 16) * scale);
     }
 
@@ -49,7 +48,7 @@ public class MapTooltipComponent implements TooltipComponent, MeteorTooltipData 
 
     @Override
     public void drawItems(TextRenderer textRenderer, int x, int y, int width, int height, DrawContext context) {
-        double scale = Modules.get().get(BetterTooltips.class).mapsScale.get();
+        double scale = 1.0;
 
         // Background
         int size = (int) ((128 + 16) * scale);
