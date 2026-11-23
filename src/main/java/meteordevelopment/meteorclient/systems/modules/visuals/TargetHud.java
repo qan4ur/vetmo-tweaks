@@ -6,10 +6,12 @@ package meteordevelopment.meteorclient.systems.modules.visuals;
 
 import meteordevelopment.meteorclient.events.entity.player.AttackEntityEvent;
 import meteordevelopment.meteorclient.events.game.GameLeftEvent;
-import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Categories;
+import meteordevelopment.meteorclient.systems.hud.XAnchor;
+import meteordevelopment.meteorclient.systems.hud.YAnchor;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudModule;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.font.TextRenderer;
@@ -26,10 +28,10 @@ import org.joml.Matrix3x2fStack;
 
 import java.util.Locale;
 
-public class TargetHud extends Module {
+public class TargetHud extends Module implements VetmoHudModule {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgParts = settings.createGroup("Parts");
-    private final SettingGroup sgPosition = settings.createGroup("Position");
+    private final SettingGroup sgHud = settings.createGroup("HUD");
     private final SettingGroup sgColors = settings.createGroup("Colors");
 
     // General
@@ -68,7 +70,7 @@ public class TargetHud extends Module {
 
     private final Setting<Boolean> previewInChat = sgGeneral.add(new BoolSetting.Builder()
         .name("preview-in-chat")
-        .description("Shows a preview of yourself while chat is open, so you can position it.")
+        .description("Shows a preview of yourself while chat is open.")
         .defaultValue(true)
         .build()
     );
@@ -164,34 +166,14 @@ public class TargetHud extends Module {
         .build()
     );
 
-    // Position
+    // HUD
 
-    private final Setting<Double> posX = sgPosition.add(new DoubleSetting.Builder()
-        .name("x")
-        .description("Horizontal position in percent of the screen width.")
-        .defaultValue(53)
-        .range(0, 100)
-        .sliderRange(0, 100)
-        .decimalPlaces(1)
-        .build()
-    );
-
-    private final Setting<Double> posY = sgPosition.add(new DoubleSetting.Builder()
-        .name("y")
-        .description("Vertical position in percent of the screen height.")
-        .defaultValue(56)
-        .range(0, 100)
-        .sliderRange(0, 100)
-        .decimalPlaces(1)
-        .build()
-    );
-
-    private final Setting<Double> scale = sgPosition.add(new DoubleSetting.Builder()
+    private final Setting<Double> scale = sgHud.add(new DoubleSetting.Builder()
         .name("scale")
-        .description("Size of the panel.")
+        .description("Size of the panel. Mouse wheel over it in the HUD editor also changes it.")
         .defaultValue(1)
-        .range(0.5, 3)
-        .sliderRange(0.5, 2)
+        .range(0.3, 4)
+        .sliderRange(0.5, 3)
         .build()
     );
 
@@ -373,10 +355,15 @@ public class TargetHud extends Module {
         items[4] = e.getEquippedStack(EquipmentSlot.MAINHAND);
     }
 
-    @EventHandler
-    private void onRender2D(Render2DEvent event) {
+    // ---- animation (self-timed, the HUD element drives it every frame) ----
+
+    private long lastFrame;
+
+    private void update() {
+        long now = System.nanoTime();
+        double dt = lastFrame == 0 ? 0 : VetmoRender.dt((now - lastFrame) / 1e9);
+        lastFrame = now;
         if (mc.player == null) return;
-        double dt = VetmoRender.dt(event.frameTime);
         double speed = animationSpeed.get();
 
         updateTarget();
@@ -402,64 +389,145 @@ public class TargetHud extends Module {
             if (trailHealth < dispHealth) trailHealth = dispHealth;
             else if (sinceDamage > 0.35 / speed) trailHealth = VetmoRender.approach(trailHealth, dispHealth, 4 * speed, dt);
         }
-
-        if (!hasSnapshot || fade <= 0) return;
-        if (!VetmoRender.shouldRender(showInScreens.get())) return;
-
-        render(event.drawContext);
     }
 
-    private void render(DrawContext ctx) {
-        TextRenderer tr = mc.textRenderer;
-        int sw = ctx.getScaledWindowWidth();
-        int sh = ctx.getScaledWindowHeight();
+    /** Fills the snapshot with yourself (or a dummy in the main menu) for the HUD editor preview. */
+    private void previewSnapshot() {
+        if (mc.player != null) {
+            snapshot(mc.player);
+            return;
+        }
+        shownId = Integer.MIN_VALUE;
+        name = "Vetmo";
+        health = 14;
+        maxHealth = 20;
+        absorption = 4;
+        hurtTime = 0;
+        skin = null;
+        distance = 3.2f;
+        java.util.Arrays.fill(items, ItemStack.EMPTY);
+        dispHealth = lastHealth = health;
+        trailHealth = 17;
+        dispAbsorption = absorption;
+    }
 
-        // ---- layout (local, unscaled units) ----
-        final int pad = 6;
-        final int headSize = 32;
+    // ---- HUD element ----
+
+    @Override
+    public boolean shouldRenderHud() {
+        update();
+        return hasSnapshot && fade > 0 && VetmoRender.shouldRender(showInScreens.get());
+    }
+
+    @Override
+    public void renderHud(DrawContext ctx, float tickDelta, boolean inEditor) {
+        update();
+        boolean preview = inEditor && (!hasSnapshot || fade <= 0);
+        if (preview) previewSnapshot();
+        else if (!hasSnapshot || fade <= 0) return;
+
+        render(ctx, preview ? 1 : fade);
+    }
+
+    @Override
+    public double getHudWidth() {
+        layout();
+        return layoutW;
+    }
+
+    @Override
+    public double getHudHeight() {
+        layout();
+        return layoutH;
+    }
+
+    @Override
+    public Setting<Double> hudScale() {
+        return scale;
+    }
+
+    @Override
+    public int defaultHudX() {
+        return 0;
+    }
+
+    @Override
+    public int defaultHudY() {
+        return (int) Math.round(60 * mc.getWindow().getScaleFactor());
+    }
+
+    @Override
+    public XAnchor defaultHudXAnchor() {
+        return XAnchor.Center;
+    }
+
+    @Override
+    public YAnchor defaultHudYAnchor() {
+        return YAnchor.Center;
+    }
+
+    // ---- layout (local, unscaled units) ----
+
+    private static final int PAD = 6;
+    private static final int HEAD_SIZE = 32;
+
+    private int layoutW = 140, layoutH = 44;
+    private int contentX, contentW, nameY, barY, bottomY, distW, itemCount, itemsW;
+    private String shownName = "", distText = "", hpText = "";
+
+    private void layout() {
+        TextRenderer tr = mc.textRenderer;
         boolean head = showHead.get();
         boolean bottomRow = showHealthText.get() || showArmor.get();
 
-        int contentX = head ? pad + headSize + 7 : pad;
-        String distText = String.format(Locale.ROOT, "%.1fm", distance);
-        int distW = showDistance.get() ? tr.getWidth(distText) : 0;
+        contentX = head ? PAD + HEAD_SIZE + 7 : PAD;
+        distText = String.format(Locale.ROOT, "%.1fm", distance);
+        distW = showDistance.get() ? tr.getWidth(distText) : 0;
 
         int nameMax = 120;
-        String shownName = name;
+        shownName = name.isEmpty() && mc.player != null ? mc.player.getName().getString() : name;
         if (tr.getWidth(shownName) > nameMax) shownName = tr.trimToWidth(shownName, nameMax - tr.getWidth("...")) + "...";
         int nameW = showName.get() ? tr.getWidth(shownName) : 0;
 
-        int itemCount = showArmor.get() ? (showHeld.get() ? 5 : 4) : 0;
-        int itemsW = itemCount * 13;
-        String hpText = healthText();
+        itemCount = showArmor.get() ? (showHeld.get() ? 5 : 4) : 0;
+        itemsW = itemCount * 13;
+        hpText = healthText();
         int hpW = showHealthText.get() ? tr.getWidth(hpText) + 6 : 0;
 
-        int contentW = Math.max(98, Math.max(nameW + (distW > 0 ? distW + 8 : 0), hpW + itemsW));
-        int w = contentX + contentW + pad;
+        contentW = Math.max(98, Math.max(nameW + (distW > 0 ? distW + 8 : 0), hpW + itemsW));
+        layoutW = contentX + contentW + PAD;
 
-        int cy = pad;
-        int nameY = cy;
+        int cy = PAD;
+        nameY = cy;
         if (showName.get() || showDistance.get()) cy += 12;
-        int barY = cy;
+        barY = cy;
         if (showBar.get()) cy += 10;
-        int bottomY = cy;
+        bottomY = cy;
         if (bottomRow) cy += 13;
-        int h = Math.max(head ? pad * 2 + headSize : 0, cy + pad - 1);
-        if (h <= pad * 2) h = pad * 2 + 8;
+        int h = Math.max(head ? PAD * 2 + HEAD_SIZE : 0, cy + PAD - 1);
+        if (h <= PAD * 2) h = PAD * 2 + 8;
+        layoutH = h;
+    }
 
-        // ---- transform with open animation ----
-        double s = scale.get();
+    private void render(DrawContext ctx, double fade) {
+        TextRenderer tr = mc.textRenderer;
+        layout();
+
+        final int pad = PAD;
+        final int headSize = HEAD_SIZE;
+        boolean head = showHead.get();
+        boolean bottomRow = showHealthText.get() || showArmor.get();
+        int w = layoutW, h = layoutH;
+        int contentX = this.contentX, contentW = this.contentW;
+        int itemCount = this.itemCount, itemsW = this.itemsW;
+
+        // ---- open animation, scaled around the box center ----
         double eased = VetmoRender.easeOutCubic(fade);
-        double animScale = s * (0.88 + 0.12 * eased);
-
-        float x = (float) (sw * posX.get() / 100.0);
-        float y = (float) (sh * posY.get() / 100.0);
-        x = (float) Math.max(2, Math.min(x, sw - w * s - 2));
-        y = (float) Math.max(2, Math.min(y, sh - h * s - 2));
+        double animScale = 0.88 + 0.12 * eased;
 
         Matrix3x2fStack m = ctx.getMatrices();
         m.pushMatrix();
-        m.translate(x + (float) (w * s / 2), y + (float) (h * s / 2));
+        m.translate(w / 2f, h / 2f);
         m.scale((float) animScale, (float) animScale);
         m.translate(-w / 2f, -h / 2f);
 

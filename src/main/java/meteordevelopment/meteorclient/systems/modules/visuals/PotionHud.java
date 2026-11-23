@@ -4,18 +4,26 @@
 
 package meteordevelopment.meteorclient.systems.modules.visuals;
 
-import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.systems.hud.Hud;
+import meteordevelopment.meteorclient.systems.hud.HudElement;
+import meteordevelopment.meteorclient.systems.hud.HudElementInfo;
+import meteordevelopment.meteorclient.systems.hud.XAnchor;
+import meteordevelopment.meteorclient.systems.hud.YAnchor;
+import meteordevelopment.meteorclient.systems.hud.screens.HudEditorScreen;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHud;
+import meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudModule;
+import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.ColorHelper;
 import org.joml.Matrix3x2fStack;
@@ -24,11 +32,10 @@ import java.util.*;
 
 import static meteordevelopment.meteorclient.systems.modules.visuals.VetmoHudRender.*;
 
-public class PotionHud extends Module {
+public class PotionHud extends Module implements VetmoHudModule {
     public enum Sort { Duration, Name, Harmful }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgPosition = settings.createGroup("Position");
     private final SettingGroup sgColors = settings.createGroup("Colors");
 
     // General
@@ -98,36 +105,12 @@ public class PotionHud extends Module {
         .build()
     );
 
-    // Position
-
-    private final Setting<Anchor> anchor = sgPosition.add(new EnumSetting.Builder<Anchor>()
-        .name("anchor")
-        .description("Screen corner/edge the list is attached to.")
-        .defaultValue(Anchor.TopRight)
-        .build()
-    );
-
-    private final Setting<Integer> offsetX = sgPosition.add(new IntSetting.Builder()
-        .name("x-offset")
-        .description("Horizontal offset from the anchor.")
-        .defaultValue(4)
-        .sliderRange(-500, 500)
-        .build()
-    );
-
-    private final Setting<Integer> offsetY = sgPosition.add(new IntSetting.Builder()
-        .name("y-offset")
-        .description("Vertical offset from the anchor.")
-        .defaultValue(4)
-        .sliderRange(-300, 300)
-        .build()
-    );
-
-    private final Setting<Double> scale = sgPosition.add(new DoubleSetting.Builder()
+    private final Setting<Double> scale = sgGeneral.add(new DoubleSetting.Builder()
         .name("scale")
-        .description("HUD scale.")
+        .description("HUD scale (mouse wheel over the element in the HUD editor).")
         .defaultValue(1)
-        .range(0.5, 3)
+        .min(0.3)
+        .max(4)
         .sliderRange(0.5, 3)
         .build()
     );
@@ -184,9 +167,16 @@ public class PotionHud extends Module {
         boolean alive;
     }
 
+    private static final int PAD = 3;
+
     private final Map<RegistryEntry<StatusEffect>, Row> rows = new LinkedHashMap<>();
     private final List<Row> order = new ArrayList<>();
+    private List<StatusEffectInstance> samples;
     private float animWidth = -1;
+    private long lastFrameNs;
+
+    // layout of the current frame, computed in update()
+    private int boxW = 1, boxH = 1;
 
     public PotionHud() {
         super(Categories.Visuals, "potion-hud", "Lists your active status effects with timers.");
@@ -195,40 +185,103 @@ public class PotionHud extends Module {
     @Override
     public void onDeactivate() {
         rows.clear();
+        order.clear();
         animWidth = -1;
+        lastFrameNs = 0;
     }
 
-    /** Used by VetmoInGameHudMixin. */
+    /** Used by VetmoPotionHudMixin. */
     public boolean shouldHideVanilla() {
         return isActive() && hideVanilla.get();
     }
 
-    @EventHandler
-    private void onRender2D(Render2DEvent event) {
-        if (mc.player == null || mc.options.hudHidden) return;
+    // HUD element
+
+    @Override
+    public Setting<Double> hudScale() {
+        return scale;
+    }
+
+    @Override
+    public XAnchor defaultHudXAnchor() {
+        return XAnchor.Right;
+    }
+
+    @Override
+    public YAnchor defaultHudYAnchor() {
+        return YAnchor.Center;
+    }
+
+    @Override
+    public int defaultHudX() {
+        return -4;
+    }
+
+    @Override
+    public int defaultHudY() {
+        return 0;
+    }
+
+    @Override
+    public boolean shouldRenderHud() {
+        return mc.player != null && !mc.options.hudHidden && !order.isEmpty();
+    }
+
+    /** Called first by the HUD element every frame, so the per-frame state is updated here. */
+    @Override
+    public double getHudWidth() {
+        update();
+        return boxW;
+    }
+
+    @Override
+    public double getHudHeight() {
+        return boxH;
+    }
+
+    private void update() {
+        long now = System.nanoTime();
+        float dt = lastFrameNs == 0 ? 0 : (float) Math.min((now - lastFrameNs) / 1e9, 0.1);
+        lastFrameNs = now;
+
+        boolean editor = !Utils.canUpdate() || HudEditorScreen.isOpen();
 
         // sync rows with active effects
         for (Row row : rows.values()) row.alive = false;
-        for (StatusEffectInstance inst : mc.player.getStatusEffects()) {
-            if (!showAmbient.get() && inst.isAmbient()) continue;
-            if (respectHidden.get() && !inst.shouldShowIcon()) continue;
-            Row row = rows.computeIfAbsent(inst.getEffectType(), k -> new Row());
-            row.instance = inst;
-            row.alive = true;
+        boolean any = false;
+        if (mc.player != null) {
+            for (StatusEffectInstance inst : mc.player.getStatusEffects()) {
+                if (!showAmbient.get() && inst.isAmbient()) continue;
+                if (respectHidden.get() && !inst.shouldShowIcon()) continue;
+                Row row = rows.computeIfAbsent(inst.getEffectType(), k -> new Row());
+                row.instance = inst;
+                row.alive = true;
+                any = true;
+            }
         }
 
-        float dt = (float) event.frameTime;
+        // preview in the HUD editor when there are no real effects
+        if (editor && !any) {
+            for (StatusEffectInstance inst : samples()) {
+                Row row = rows.computeIfAbsent(inst.getEffectType(), k -> new Row());
+                row.instance = inst;
+                row.alive = true;
+            }
+        }
+
         rows.values().removeIf(row -> {
             row.progress = approach(row.progress, row.alive ? 1 : 0, dt, 12);
             if (row.alive && row.progress > 0.995f) row.progress = 1;
             return !row.alive && row.progress < 0.02f;
         });
+
+        order.clear();
         if (rows.isEmpty()) {
             animWidth = -1;
+            boxW = boxH = 1;
             return;
         }
 
-        order.clear();
         order.addAll(rows.values());
         Comparator<Row> cmp = switch (sort.get()) {
             case Duration -> Comparator.comparingInt(r -> r.instance.isInfinite() ? Integer.MAX_VALUE : r.instance.getDuration());
@@ -238,10 +291,8 @@ public class PotionHud extends Module {
         };
         order.sort(cmp);
 
-        DrawContext ctx = event.drawContext;
-        TextRenderer tr = mc.textRenderer;
-
         // measure
+        TextRenderer tr = mc.textRenderer;
         int iconW = showIcon.get() ? 20 : 0;
         int textW = 0;
         float totalH = 0;
@@ -251,25 +302,49 @@ public class PotionHud extends Module {
             textW = Math.max(textW, Math.max(nameW, timeW));
             totalH += ROW_H * easeOutCubic(row.progress);
         }
-        int pad = 3;
-        float targetW = pad * 2 + iconW + textW + 6;
+        float targetW = PAD * 2 + iconW + textW + 6;
         animWidth = animWidth < 0 ? targetW : approach(animWidth, targetW, dt, 14);
-        int w = Math.round(animWidth);
-        int h = Math.round(totalH) + pad * 2;
+        boxW = Math.round(animWidth);
+        boxH = Math.round(totalH) + PAD * 2;
+    }
 
-        float s = scale.get().floatValue();
-        float[] xy = anchored(ctx, anchor.get(), offsetX.get(), offsetY.get(), w * s, h * s);
-        boolean right = isRightSide(anchor.get());
+    private List<StatusEffectInstance> samples() {
+        if (samples == null) {
+            samples = List.of(
+                new StatusEffectInstance(StatusEffects.STRENGTH, 20 * 154, 1),
+                new StatusEffectInstance(StatusEffects.SPEED, 20 * 87, 1),
+                new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 20 * 7, 0)
+            );
+        }
+        return samples;
+    }
+
+    /** Rows slide in from the side the element is attached to. */
+    private boolean isRightAligned() {
+        HudElementInfo<?> info = VetmoHud.getInfo(this);
+        Hud hud = Hud.get();
+        if (info == null || hud == null) return true;
+        for (HudElement element : hud) {
+            if (element.info == info) return element.box.xAnchor == XAnchor.Right;
+        }
+        return true;
+    }
+
+    @Override
+    public void renderHud(DrawContext ctx, float tickDelta, boolean inEditor) {
+        if (order.isEmpty()) return;
+
+        TextRenderer tr = mc.textRenderer;
+        int w = boxW, h = boxH;
+        int iconW = showIcon.get() ? 20 : 0;
+        boolean right = isRightAligned();
 
         Matrix3x2fStack m = ctx.getMatrices();
-        m.pushMatrix();
-        m.translate(xy[0], xy[1]);
-        m.scale(s);
 
         drawPanel(ctx, 0, 0, w, h, bgColor.get(), accentColor.get(), 1);
 
         float pulse = pulse(1.6);
-        float y = pad;
+        float y = PAD;
         for (Row row : order) {
             float e = easeOutCubic(row.progress);
             StatusEffectInstance inst = row.instance;
@@ -285,15 +360,15 @@ public class PotionHud extends Module {
 
             if (low) {
                 SettingColor bc = blinkColor.get();
-                ctx.fill(pad, ry, w - pad, ry + ROW_H - 2, withAlpha(bc.getPacked(), (int) (bc.a * k * e)));
+                ctx.fill(PAD, ry, w - PAD, ry + ROW_H - 2, withAlpha(bc.getPacked(), (int) (bc.a * k * e)));
             }
 
             if (effectColorBar.get()) {
                 int ec = withAlpha(inst.getEffectType().value().getColor(), alpha);
-                ctx.fill(pad, ry + 2, pad + 1, ry + ROW_H - 4, ec);
+                ctx.fill(PAD, ry + 2, PAD + 1, ry + ROW_H - 4, ec);
             }
 
-            int tx = pad + 3;
+            int tx = PAD + 3;
             if (showIcon.get()) {
                 float iconAlpha = e * (low ? 0.45f + 0.55f * (1 - k) : 1f);
                 ctx.drawGuiTexture(RenderPipelines.GUI_TEXTURED, InGameHud.getEffectTexture(inst.getEffectType()), tx, ry + 1, 18, 18, ColorHelper.getWhite(iconAlpha));
@@ -310,8 +385,6 @@ public class PotionHud extends Module {
             m.popMatrix();
             y += ROW_H * e;
         }
-
-        m.popMatrix();
     }
 
     private String label(StatusEffectInstance inst) {

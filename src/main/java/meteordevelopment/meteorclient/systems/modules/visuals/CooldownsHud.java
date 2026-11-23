@@ -4,12 +4,15 @@
 
 package meteordevelopment.meteorclient.systems.modules.visuals;
 
-import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.systems.hud.XAnchor;
+import meteordevelopment.meteorclient.systems.hud.YAnchor;
+import meteordevelopment.meteorclient.systems.hud.screens.HudEditorScreen;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudModule;
+import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.player.ItemCooldownManager;
@@ -27,12 +30,11 @@ import static meteordevelopment.meteorclient.systems.modules.visuals.VetmoHudRen
 /**
  * Shows item cooldowns. Reads only {@link ItemCooldownManager#getCooldownProgress(ItemStack, float)}, i.e. exactly what the vanilla hotbar overlay shows.
  */
-public class CooldownsHud extends Module {
+public class CooldownsHud extends Module implements VetmoHudModule {
     public enum Layout { Horizontal, Vertical }
     public enum Style { Radial, Sweep, None }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgPosition = settings.createGroup("Position");
     private final SettingGroup sgColors = settings.createGroup("Colors");
 
     // General
@@ -86,36 +88,12 @@ public class CooldownsHud extends Module {
         .build()
     );
 
-    // Position
-
-    private final Setting<Anchor> anchor = sgPosition.add(new EnumSetting.Builder<Anchor>()
-        .name("anchor")
-        .description("Screen corner/edge the HUD is attached to.")
-        .defaultValue(Anchor.BottomCenter)
-        .build()
-    );
-
-    private final Setting<Integer> offsetX = sgPosition.add(new IntSetting.Builder()
-        .name("x-offset")
-        .description("Horizontal offset from the anchor.")
-        .defaultValue(-150)
-        .sliderRange(-500, 500)
-        .build()
-    );
-
-    private final Setting<Integer> offsetY = sgPosition.add(new IntSetting.Builder()
-        .name("y-offset")
-        .description("Vertical offset from the anchor.")
-        .defaultValue(2)
-        .sliderRange(-300, 300)
-        .build()
-    );
-
-    private final Setting<Double> scale = sgPosition.add(new DoubleSetting.Builder()
+    private final Setting<Double> scale = sgGeneral.add(new DoubleSetting.Builder()
         .name("scale")
-        .description("HUD scale.")
+        .description("HUD scale (mouse wheel over the element in the HUD editor).")
         .defaultValue(1)
-        .range(0.5, 3)
+        .min(0.3)
+        .max(4)
         .sliderRange(0.5, 3)
         .build()
     );
@@ -162,10 +140,20 @@ public class CooldownsHud extends Module {
         float startProgress;
         long startNs;
         float lastProgress;
+        // editor preview: fixed length in seconds instead of the estimate
+        double sampleSeconds;
     }
+
+    private static final int PAD = 3;
 
     private final Map<Item, Track> tracks = new LinkedHashMap<>();
     private final List<Track> visible = new ArrayList<>();
+    private long lastFrameNs;
+
+    // layout of the current frame, computed in update()
+    private boolean horizontal;
+    private int cellW, cellH, boxW = 1, boxH = 1;
+    private long frameNs;
 
     public CooldownsHud() {
         super(Categories.Visuals, "cooldowns-hud", "Shows active item cooldowns (pearl, chorus, totem, shield...).");
@@ -174,66 +162,140 @@ public class CooldownsHud extends Module {
     @Override
     public void onDeactivate() {
         tracks.clear();
+        visible.clear();
+        lastFrameNs = 0;
     }
 
-    @EventHandler
-    private void onRender2D(Render2DEvent event) {
-        if (mc.player == null || mc.options.hudHidden) return;
+    // HUD element
 
-        ItemCooldownManager cooldowns = mc.player.getItemCooldownManager();
+    @Override
+    public Setting<Double> hudScale() {
+        return scale;
+    }
+
+    @Override
+    public XAnchor defaultHudXAnchor() {
+        return XAnchor.Center;
+    }
+
+    @Override
+    public YAnchor defaultHudYAnchor() {
+        return YAnchor.Bottom;
+    }
+
+    @Override
+    public int defaultHudX() {
+        return 0;
+    }
+
+    @Override
+    public int defaultHudY() {
+        return (int) Math.round(-85 * mc.getWindow().getScaleFactor());
+    }
+
+    @Override
+    public boolean shouldRenderHud() {
+        return mc.player != null && !mc.options.hudHidden && !visible.isEmpty();
+    }
+
+    /** Called first by the HUD element every frame, so the per-frame state is updated here. */
+    @Override
+    public double getHudWidth() {
+        update();
+        return boxW;
+    }
+
+    @Override
+    public double getHudHeight() {
+        return boxH;
+    }
+
+    private void update() {
         long now = System.nanoTime();
+        float dt = lastFrameNs == 0 ? 0 : (float) Math.min((now - lastFrameNs) / 1e9, 0.1);
+        lastFrameNs = now;
+        frameNs = now;
+
+        boolean editor = !Utils.canUpdate() || HudEditorScreen.isOpen();
+        float tickDelta = mc.getRenderTickCounter().getTickProgress(true);
 
         for (Track t : tracks.values()) t.alive = false;
-        for (Item item : items.get()) {
-            ItemStack stack = findStack(item);
-            float p = cooldowns.getCooldownProgress(stack, event.tickDelta);
-            if (p <= 0) continue;
+        boolean any = false;
+        if (mc.player != null) {
+            ItemCooldownManager cooldowns = mc.player.getItemCooldownManager();
+            for (Item item : items.get()) {
+                ItemStack stack = findStack(item);
+                float p = cooldowns.getCooldownProgress(stack, tickDelta);
+                if (p <= 0) continue;
 
-            Track t = tracks.computeIfAbsent(item, k -> new Track());
-            if (t.item == null || p > t.lastProgress + 0.02f || t.startNs == 0) {
-                // new (or restarted) cooldown
-                t.startProgress = p;
-                t.startNs = now;
+                Track t = tracks.computeIfAbsent(item, k -> new Track());
+                if (t.item == null || p > t.lastProgress + 0.02f || t.startNs == 0) {
+                    // new (or restarted) cooldown
+                    t.startProgress = p;
+                    t.startNs = now;
+                }
+                t.item = item;
+                t.stack = stack;
+                t.progress = p;
+                t.lastProgress = p;
+                t.sampleSeconds = 0;
+                t.alive = true;
+                any = true;
             }
-            t.item = item;
-            t.stack = stack;
-            t.progress = p;
-            t.lastProgress = p;
-            t.alive = true;
         }
 
-        float dt = (float) event.frameTime;
+        // preview in the HUD editor when nothing is on cooldown: a looping pearl and chorus cooldown
+        if (editor && !any) {
+            double time = now / 1e9;
+            sample(Items.ENDER_PEARL, 3.0, time);
+            sample(Items.CHORUS_FRUIT, 4.0, time + 1.3);
+        }
+
         tracks.values().removeIf(t -> {
             t.anim = approach(t.anim, t.alive ? 1 : 0, dt, t.alive ? 14 : 10);
             if (!t.alive) t.startNs = 0;
             return !t.alive && t.anim < 0.02f;
         });
-        if (tracks.isEmpty()) return;
 
         visible.clear();
+        if (tracks.isEmpty()) {
+            boxW = boxH = 1;
+            return;
+        }
         visible.addAll(tracks.values());
 
-        DrawContext ctx = event.drawContext;
         TextRenderer tr = mc.textRenderer;
-        boolean horizontal = layout.get() == Layout.Horizontal;
+        horizontal = layout.get() == Layout.Horizontal;
 
-        int pad = 3;
-        int cellW = horizontal ? SLOT + 4 : SLOT + 4 + (seconds.get() ? tr.getWidth("00.0s") + 2 : 0);
-        int cellH = horizontal ? SLOT + (seconds.get() ? 10 : 0) + (bar.get() ? 3 : 0) + 2 : SLOT + 2;
+        cellW = horizontal ? SLOT + 4 : SLOT + 4 + (seconds.get() ? tr.getWidth("00.0s") + 2 : 0);
+        cellH = horizontal ? SLOT + (seconds.get() ? 10 : 0) + (bar.get() ? 3 : 0) + 2 : SLOT + 2;
         if (!horizontal && bar.get() && !seconds.get()) cellW += 24;
 
         float span = 0;
         for (Track t : visible) span += easeOutCubic(t.anim) * (horizontal ? cellW : cellH);
-        int w = Math.max(1, Math.round(horizontal ? span - 4 : cellW - 4)) + pad * 2;
-        int h = Math.max(1, Math.round(horizontal ? cellH - 2 : span - 2)) + pad * 2;
+        boxW = Math.max(1, Math.round(horizontal ? span - 4 : cellW - 4)) + PAD * 2;
+        boxH = Math.max(1, Math.round(horizontal ? cellH - 2 : span - 2)) + PAD * 2;
+    }
 
-        float s = scale.get().floatValue();
-        float[] xy = anchored(ctx, anchor.get(), offsetX.get(), offsetY.get(), w * s, h * s);
+    private void sample(Item item, double period, double time) {
+        Track t = tracks.computeIfAbsent(item, k -> new Track());
+        t.item = item;
+        t.stack = item.getDefaultStack();
+        t.progress = (float) (1 - (time % period) / period);
+        t.lastProgress = t.progress;
+        t.sampleSeconds = period;
+        t.alive = true;
+    }
+
+    @Override
+    public void renderHud(DrawContext ctx, float tickDelta, boolean inEditor) {
+        if (visible.isEmpty()) return;
+
+        TextRenderer tr = mc.textRenderer;
+        int w = boxW, h = boxH;
+        long now = frameNs;
 
         Matrix3x2fStack m = ctx.getMatrices();
-        m.pushMatrix();
-        m.translate(xy[0], xy[1]);
-        m.scale(s);
 
         float panelEase = 0;
         for (Track t : visible) panelEase = Math.max(panelEase, t.anim);
@@ -244,8 +306,8 @@ public class CooldownsHud extends Module {
             float e = easeOutCubic(t.anim);
             float pop = t.alive ? easeOutBack(t.anim) : e;
             int alpha = (int) (255 * e);
-            int cx = pad + Math.round(horizontal ? cursor : 0);
-            int cy = pad + Math.round(horizontal ? 0 : cursor);
+            int cx = PAD + Math.round(horizontal ? cursor : 0);
+            int cy = PAD + Math.round(horizontal ? 0 : cursor);
 
             m.pushMatrix();
             // scale the slot around its centre for the pop-in
@@ -278,8 +340,6 @@ public class CooldownsHud extends Module {
 
             cursor += e * (horizontal ? cellW : cellH);
         }
-
-        m.popMatrix();
     }
 
     private ItemStack findStack(Item item) {
@@ -333,6 +393,7 @@ public class CooldownsHud extends Module {
 
     private static String secondsLeft(Track t, long now) {
         if (!t.alive) return "0.0s";
+        if (t.sampleSeconds > 0) return String.format(Locale.ROOT, "%.1fs", t.progress * t.sampleSeconds);
         double elapsed = (now - t.startNs) / 1e9;
         double used = t.startProgress - t.progress;
         double remaining;

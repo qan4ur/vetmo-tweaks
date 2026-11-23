@@ -6,11 +6,13 @@ package meteordevelopment.meteorclient.systems.modules.visuals;
 
 import meteordevelopment.meteorclient.events.entity.player.AttackEntityEvent;
 import meteordevelopment.meteorclient.events.game.GameLeftEvent;
-import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Categories;
+import meteordevelopment.meteorclient.systems.hud.XAnchor;
+import meteordevelopment.meteorclient.systems.hud.YAnchor;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudModule;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.font.TextRenderer;
@@ -19,9 +21,9 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import org.joml.Matrix3x2fStack;
 
-public class ComboCounter extends Module {
+public class ComboCounter extends Module implements VetmoHudModule {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgPosition = settings.createGroup("Position");
+    private final SettingGroup sgHud = settings.createGroup("HUD");
     private final SettingGroup sgColors = settings.createGroup("Colors");
 
     // General
@@ -83,7 +85,7 @@ public class ComboCounter extends Module {
 
     private final Setting<Boolean> previewInChat = sgGeneral.add(new BoolSetting.Builder()
         .name("preview-in-chat")
-        .description("Shows a preview while chat is open, so you can position it.")
+        .description("Shows a preview while chat is open.")
         .defaultValue(true)
         .build()
     );
@@ -95,33 +97,13 @@ public class ComboCounter extends Module {
         .build()
     );
 
-    // Position
+    // HUD
 
-    private final Setting<Double> posX = sgPosition.add(new DoubleSetting.Builder()
-        .name("x")
-        .description("Horizontal center in percent of the screen width.")
-        .defaultValue(50)
-        .range(0, 100)
-        .sliderRange(0, 100)
-        .decimalPlaces(1)
-        .build()
-    );
-
-    private final Setting<Double> posY = sgPosition.add(new DoubleSetting.Builder()
-        .name("y")
-        .description("Vertical center in percent of the screen height.")
-        .defaultValue(38)
-        .range(0, 100)
-        .sliderRange(0, 100)
-        .decimalPlaces(1)
-        .build()
-    );
-
-    private final Setting<Double> scale = sgPosition.add(new DoubleSetting.Builder()
+    private final Setting<Double> scale = sgHud.add(new DoubleSetting.Builder()
         .name("scale")
-        .description("Size of the counter.")
+        .description("Size of the counter. Mouse wheel over it in the HUD editor also changes it.")
         .defaultValue(1)
-        .range(0.5, 4)
+        .range(0.3, 4)
         .sliderRange(0.5, 3)
         .build()
     );
@@ -262,12 +244,18 @@ public class ComboCounter extends Module {
         combo = 0;
     }
 
-    @EventHandler
-    private void onRender2D(Render2DEvent event) {
-        if (mc.player == null) return;
-        double dt = VetmoRender.dt(event.frameTime);
+    // ---- animation (self-timed, the HUD element drives it every frame) ----
 
-        boolean active = combo >= minCombo.get();
+    private long lastFrame;
+    private boolean active;
+
+    private void update() {
+        long now = System.nanoTime();
+        double dt = lastFrame == 0 ? 0 : VetmoRender.dt((now - lastFrame) / 1e9);
+        lastFrame = now;
+        if (mc.player == null) return;
+
+        active = combo >= minCombo.get();
         boolean preview = !active && previewInChat.get() && VetmoRender.isChatOpen();
         if (preview) displayCombo = Math.max(displayCombo, 3);
 
@@ -277,43 +265,110 @@ public class ComboCounter extends Module {
         if (fade < 0.004) {
             fade = 0;
             if (!active) displayCombo = 0;
-            return;
         }
-
-        if (!VetmoRender.shouldRender(showInScreens.get())) return;
-        render(event.drawContext, active);
     }
 
-    private void render(DrawContext ctx, boolean active) {
-        TextRenderer tr = mc.textRenderer;
-        int sw = ctx.getScaledWindowWidth();
-        int sh = ctx.getScaledWindowHeight();
+    // ---- HUD element ----
 
-        String num = Integer.toString(displayCombo);
+    private static final float NUM_SCALE = 2f;
+    private static final int PANEL_PAD = 7;
+    private static final int HALF_H = 13;
+
+    private int shownCombo() {
+        return displayCombo > 0 ? displayCombo : 5;
+    }
+
+    private float contentWidth(int number) {
+        TextRenderer tr = mc.textRenderer;
         String lbl = label.get();
-        final float numScale = 2f;
+        int lblW = lbl.isEmpty() ? 0 : tr.getWidth(lbl);
+        return tr.getWidth(Integer.toString(number)) * NUM_SCALE + (lblW > 0 ? 4 + lblW : 0);
+    }
+
+    @Override
+    public double getHudWidth() {
+        return Math.ceil(contentWidth(shownCombo()) / 2) * 2 + PANEL_PAD * 2;
+    }
+
+    @Override
+    public double getHudHeight() {
+        return HALF_H * 2;
+    }
+
+    @Override
+    public boolean shouldRenderHud() {
+        update();
+        return fade > 0 && VetmoRender.shouldRender(showInScreens.get());
+    }
+
+    @Override
+    public void renderHud(DrawContext ctx, float tickDelta, boolean inEditor) {
+        update();
+        boolean preview = inEditor && fade <= 0;
+        if (!preview && fade <= 0) return;
+
+        Matrix3x2fStack m = ctx.getMatrices();
+        m.pushMatrix();
+        m.translate((float) (getHudWidth() / 2), HALF_H);
+        if (preview) render(ctx, shownCombo(), true, 1, 1);
+        else {
+            double eased = VetmoRender.easeOutCubic(fade);
+            render(ctx, displayCombo, active, fade, active ? 0.85 + 0.15 * eased : 0.95 + 0.05 * eased);
+        }
+        m.popMatrix();
+    }
+
+    @Override
+    public Setting<Double> hudScale() {
+        return scale;
+    }
+
+    @Override
+    public int defaultHudX() {
+        return 0;
+    }
+
+    @Override
+    public int defaultHudY() {
+        return (int) Math.round(-40 * mc.getWindow().getScaleFactor());
+    }
+
+    @Override
+    public XAnchor defaultHudXAnchor() {
+        return XAnchor.Center;
+    }
+
+    @Override
+    public YAnchor defaultHudYAnchor() {
+        return YAnchor.Center;
+    }
+
+    /** Draws the counter centered on (0, 0). */
+    private void render(DrawContext ctx, int number, boolean active, double fade, double s) {
+        TextRenderer tr = mc.textRenderer;
+
+        String num = Integer.toString(number);
+        String lbl = label.get();
+        final float numScale = NUM_SCALE;
 
         int numW = tr.getWidth(num);
         int lblW = lbl.isEmpty() ? 0 : tr.getWidth(lbl);
         float totalW = numW * numScale + (lblW > 0 ? 4 + lblW : 0);
-
-        double eased = VetmoRender.easeOutCubic(fade);
-        double s = scale.get() * (active ? 0.85 + 0.15 * eased : 0.95 + 0.05 * eased);
 
         // Little shake when a combo breaks
         float shakeX = (float) (Math.sin(System.currentTimeMillis() / 18.0) * 3 * shake * shake);
 
         Matrix3x2fStack m = ctx.getMatrices();
         m.pushMatrix();
-        m.translate((float) (sw * posX.get() / 100.0) + shakeX, (float) (sh * posY.get() / 100.0));
+        m.translate(shakeX, 0);
         m.scale((float) s, (float) s);
 
         double a = fade;
         int left = (int) Math.floor(-totalW / 2);
 
         if (background.get()) {
-            int x1 = left - 7, x2 = (int) Math.ceil(totalW / 2) + 7;
-            VetmoRender.panel(ctx, x1, -13, x2, 13, 4,
+            int x1 = left - PANEL_PAD, x2 = (int) Math.ceil(totalW / 2) + PANEL_PAD;
+            VetmoRender.panel(ctx, x1, -HALF_H, x2, HALF_H, 4,
                 VetmoRender.withAlpha(backgroundColor.get().getPacked(), a),
                 VetmoRender.withAlpha(outlineColor.get().getPacked(), a),
                 VetmoRender.withAlpha(shadowColor.get().getPacked(), a), 4,

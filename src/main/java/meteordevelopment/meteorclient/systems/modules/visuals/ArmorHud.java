@@ -4,16 +4,21 @@
 
 package meteordevelopment.meteorclient.systems.modules.visuals;
 
-import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.systems.hud.XAnchor;
+import meteordevelopment.meteorclient.systems.hud.YAnchor;
+import meteordevelopment.meteorclient.systems.hud.screens.HudEditorScreen;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudModule;
+import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix3x2fStack;
 
@@ -22,12 +27,11 @@ import static meteordevelopment.meteorclient.systems.modules.visuals.VetmoHudRen
 import java.util.ArrayList;
 import java.util.List;
 
-public class ArmorHud extends Module {
+public class ArmorHud extends Module implements VetmoHudModule {
     public enum Layout { Horizontal, Vertical }
     public enum Display { Percent, Bar, Both }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgPosition = settings.createGroup("Position");
     private final SettingGroup sgColors = settings.createGroup("Colors");
 
     // General
@@ -107,36 +111,12 @@ public class ArmorHud extends Module {
         .build()
     );
 
-    // Position
-
-    private final Setting<Anchor> anchor = sgPosition.add(new EnumSetting.Builder<Anchor>()
-        .name("anchor")
-        .description("Screen corner/edge the HUD is attached to.")
-        .defaultValue(Anchor.BottomCenter)
-        .build()
-    );
-
-    private final Setting<Integer> offsetX = sgPosition.add(new IntSetting.Builder()
-        .name("x-offset")
-        .description("Horizontal offset from the anchor.")
-        .defaultValue(150)
-        .sliderRange(-500, 500)
-        .build()
-    );
-
-    private final Setting<Integer> offsetY = sgPosition.add(new IntSetting.Builder()
-        .name("y-offset")
-        .description("Vertical offset from the anchor.")
-        .defaultValue(2)
-        .sliderRange(-300, 300)
-        .build()
-    );
-
-    private final Setting<Double> scale = sgPosition.add(new DoubleSetting.Builder()
+    private final Setting<Double> scale = sgGeneral.add(new DoubleSetting.Builder()
         .name("scale")
-        .description("HUD scale.")
+        .description("HUD scale (mouse wheel over the element in the HUD editor).")
         .defaultValue(1)
-        .range(0.5, 3)
+        .min(0.3)
+        .max(4)
         .sliderRange(0.5, 3)
         .build()
     );
@@ -187,9 +167,17 @@ public class ArmorHud extends Module {
 
     private static final EquipmentSlot[] ARMOR = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
     private static final int SLOT = 20;
+    private static final int PAD = 3;
 
     private final List<ItemStack> stacks = new ArrayList<>();
+    private List<ItemStack> sampleStacks;
     private float appear;
+    private long lastFrameNs;
+
+    // layout of the current frame, computed in update()
+    private boolean horizontal, showText, showBar;
+    private int cellW, cellH, boxW, boxH;
+    private float ease;
 
     public ArmorHud() {
         super(Categories.Visuals, "armor-hud", "Shows your armor and held items with durability.");
@@ -198,29 +186,90 @@ public class ArmorHud extends Module {
     @Override
     public void onActivate() {
         appear = 0;
+        lastFrameNs = 0;
     }
 
-    @EventHandler
-    private void onRender2D(Render2DEvent event) {
-        if (mc.player == null || mc.options.hudHidden) return;
+    // HUD element
+
+    @Override
+    public Setting<Double> hudScale() {
+        return scale;
+    }
+
+    @Override
+    public XAnchor defaultHudXAnchor() {
+        return XAnchor.Center;
+    }
+
+    @Override
+    public YAnchor defaultHudYAnchor() {
+        return YAnchor.Bottom;
+    }
+
+    @Override
+    public int defaultHudX() {
+        return 0;
+    }
+
+    @Override
+    public int defaultHudY() {
+        return (int) Math.round(-60 * mc.getWindow().getScaleFactor());
+    }
+
+    @Override
+    public boolean shouldRenderHud() {
+        return mc.player != null && !mc.options.hudHidden && !stacks.isEmpty();
+    }
+
+    /** Called first by the HUD element every frame, so the per-frame state is updated here. */
+    @Override
+    public double getHudWidth() {
+        update();
+        return boxW;
+    }
+
+    @Override
+    public double getHudHeight() {
+        return boxH;
+    }
+
+    private void update() {
+        long now = System.nanoTime();
+        double frameTime = lastFrameNs == 0 ? 0 : Math.min((now - lastFrameNs) / 1e9, 0.1);
+        lastFrameNs = now;
+
+        boolean editor = !Utils.canUpdate() || HudEditorScreen.isOpen();
 
         stacks.clear();
-        for (EquipmentSlot slot : ARMOR) addStack(mc.player.getEquippedStack(slot));
-        if (mainHand.get()) addStack(mc.player.getMainHandStack());
-        if (offHand.get()) addStack(mc.player.getOffHandStack());
-        if (stacks.isEmpty()) return;
+        if (mc.player != null) {
+            for (EquipmentSlot slot : ARMOR) addStack(mc.player.getEquippedStack(slot));
+            if (mainHand.get()) addStack(mc.player.getMainHandStack());
+            if (offHand.get()) addStack(mc.player.getOffHandStack());
+        }
 
-        appear = approach(appear, 1, event.frameTime, 8);
-        float ease = easeOutCubic(appear);
+        if (editor && stacks.stream().allMatch(ItemStack::isEmpty)) {
+            stacks.clear();
+            List<ItemStack> samples = samples();
+            for (int i = 0; i < samples.size(); i++) {
+                if (i == 4 && !mainHand.get()) continue;
+                if (i == 5 && !offHand.get()) continue;
+                stacks.add(samples.get(i));
+            }
+        }
 
-        DrawContext ctx = event.drawContext;
+        if (stacks.isEmpty()) {
+            boxW = boxH = 1;
+            return;
+        }
+
+        appear = approach(appear, 1, frameTime, 8);
+        ease = easeOutCubic(appear);
+
         TextRenderer tr = mc.textRenderer;
-        boolean horizontal = layout.get() == Layout.Horizontal;
-        boolean showText = display.get() != Display.Bar;
-        boolean showBar = display.get() != Display.Percent;
+        horizontal = layout.get() == Layout.Horizontal;
+        showText = display.get() != Display.Bar;
+        showBar = display.get() != Display.Percent;
 
-        int pad = 3;
-        int cellW, cellH;
         if (horizontal) {
             cellW = SLOT + 2;
             cellH = SLOT + (showText ? 10 : 0) + (showBar ? 3 : 0);
@@ -230,26 +279,50 @@ public class ArmorHud extends Module {
         }
 
         int count = stacks.size();
-        int w = (horizontal ? cellW * count - 2 : cellW) + pad * 2;
-        int h = (horizontal ? cellH : cellH * count - 2) + pad * 2;
+        boxW = (horizontal ? cellW * count - 2 : cellW) + PAD * 2;
+        boxH = (horizontal ? cellH : cellH * count - 2) + PAD * 2;
+    }
 
-        float s = scale.get().floatValue();
-        float[] xy = anchored(ctx, anchor.get(), offsetX.get(), offsetY.get(), w * s, h * s);
+    private List<ItemStack> samples() {
+        if (sampleStacks == null) {
+            sampleStacks = new ArrayList<>();
+            sampleStacks.add(damaged(Items.NETHERITE_HELMET, 0.92f));
+            sampleStacks.add(damaged(Items.NETHERITE_CHESTPLATE, 0.74f));
+            sampleStacks.add(damaged(Items.DIAMOND_LEGGINGS, 0.48f));
+            sampleStacks.add(damaged(Items.DIAMOND_BOOTS, 0.15f));
+            sampleStacks.add(damaged(Items.NETHERITE_SWORD, 0.86f));
+            sampleStacks.add(new ItemStack(Items.TOTEM_OF_UNDYING));
+        }
+        return sampleStacks;
+    }
+
+    private static ItemStack damaged(Item item, float durability) {
+        ItemStack stack = new ItemStack(item);
+        if (stack.isDamageable()) stack.setDamage(Math.round(stack.getMaxDamage() * (1 - durability)));
+        return stack;
+    }
+
+    @Override
+    public void renderHud(DrawContext ctx, float tickDelta, boolean inEditor) {
+        if (stacks.isEmpty()) return;
+
+        TextRenderer tr = mc.textRenderer;
+        int w = boxW, h = boxH;
 
         Matrix3x2fStack m = ctx.getMatrices();
         m.pushMatrix();
-        m.translate(xy[0], xy[1] + (1 - ease) * 6);
-        m.scale(s);
+        m.translate(0, (1 - ease) * 6);
 
         int alpha = (int) (255 * ease);
         if (background.get()) drawPanel(ctx, 0, 0, w, h, bgColor.get(), accentColor.get(), ease);
 
         float pulse = pulse(blinkSpeed.get());
+        int count = stacks.size();
 
         for (int i = 0; i < count; i++) {
             ItemStack stack = stacks.get(i);
-            int cx = pad + (horizontal ? i * cellW : 0);
-            int cy = pad + (horizontal ? 0 : i * cellH);
+            int cx = PAD + (horizontal ? i * cellW : 0);
+            int cy = PAD + (horizontal ? 0 : i * cellH);
 
             boolean damageable = !stack.isEmpty() && stack.isDamageable() && stack.getMaxDamage() > 0;
             float pct = damageable ? 1f - (float) stack.getDamage() / stack.getMaxDamage() : 1f;

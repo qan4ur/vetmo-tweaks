@@ -5,10 +5,12 @@
 package meteordevelopment.meteorclient.systems.modules.visuals;
 
 import meteordevelopment.meteorclient.events.meteor.MouseButtonEvent;
-import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Categories;
+import meteordevelopment.meteorclient.systems.hud.XAnchor;
+import meteordevelopment.meteorclient.systems.hud.YAnchor;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudModule;
 import meteordevelopment.meteorclient.utils.misc.input.KeyAction;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
@@ -22,9 +24,9 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Locale;
 
-public class Keystrokes extends Module {
+public class Keystrokes extends Module implements VetmoHudModule {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgPosition = settings.createGroup("Position");
+    private final SettingGroup sgHud = settings.createGroup("HUD");
     private final SettingGroup sgColors = settings.createGroup("Colors");
 
     // General
@@ -106,34 +108,14 @@ public class Keystrokes extends Module {
         .build()
     );
 
-    // Position
+    // HUD
 
-    private final Setting<Double> posX = sgPosition.add(new DoubleSetting.Builder()
-        .name("x")
-        .description("Horizontal position in percent of the screen width.")
-        .defaultValue(1)
-        .range(0, 100)
-        .sliderRange(0, 100)
-        .decimalPlaces(1)
-        .build()
-    );
-
-    private final Setting<Double> posY = sgPosition.add(new DoubleSetting.Builder()
-        .name("y")
-        .description("Vertical position in percent of the screen height.")
-        .defaultValue(40)
-        .range(0, 100)
-        .sliderRange(0, 100)
-        .decimalPlaces(1)
-        .build()
-    );
-
-    private final Setting<Double> scale = sgPosition.add(new DoubleSetting.Builder()
+    private final Setting<Double> scale = sgHud.add(new DoubleSetting.Builder()
         .name("scale")
-        .description("Overall size.")
+        .description("Overall size. Mouse wheel over it in the HUD editor also changes it.")
         .defaultValue(1)
-        .range(0.5, 3)
-        .sliderRange(0.5, 2)
+        .range(0.3, 4)
+        .sliderRange(0.5, 3)
         .build()
     );
 
@@ -220,51 +202,97 @@ public class Keystrokes extends Module {
         return clicks.size();
     }
 
-    @EventHandler
-    private void onRender2D(Render2DEvent event) {
-        if (mc.player == null) return;
-        double dt = VetmoRender.dt(event.frameTime);
-        long now = System.currentTimeMillis();
-        int lCps = cps(leftClicks, now);
-        int rCps = cps(rightClicks, now);
+    // ---- animation (self-timed, the HUD element drives it every frame) ----
 
-        KeyBinding[] keys = {
+    private long lastFrame;
+
+    private KeyBinding[] keys() {
+        return new KeyBinding[] {
             mc.options.forwardKey, mc.options.leftKey, mc.options.backKey, mc.options.rightKey,
             mc.options.attackKey, mc.options.useKey, mc.options.jumpKey, mc.options.sneakKey
         };
+    }
+
+    private void update() {
+        long now = System.nanoTime();
+        double dt = lastFrame == 0 ? 0 : VetmoRender.dt((now - lastFrame) / 1e9);
+        lastFrame = now;
+
+        KeyBinding[] keys = keys();
         for (int i = 0; i < keys.length; i++) {
             boolean pressed = keys[i].isPressed();
             // fast attack, slower configurable release fade
             anim[i] = VetmoRender.approach(anim[i], pressed ? 1 : 0, pressed ? 30 : fadeSpeed.get(), dt);
         }
+    }
 
-        if (!VetmoRender.shouldRender(showInScreens.get())) return;
+    // ---- HUD element ----
 
-        DrawContext ctx = event.drawContext;
+    private int contentHeight() {
         int k = keySize.get();
         int g = gap.get();
-        int totalW = k * 3 + g * 2;
-
-        // compute total height
         int h = 0;
         if (showMovement.get()) h += (k + g) * 2;
         if (showMouse.get()) h += k + g;
         if (showSpace.get() || showSneak.get()) h += k / 2 + 2 + g;
-        if (h == 0) return;
-        h -= g;
+        if (h == 0) return 0;
+        return h - g;
+    }
 
-        double s = scale.get();
-        int sw = ctx.getScaledWindowWidth();
-        int sh = ctx.getScaledWindowHeight();
-        float x = (float) (sw * posX.get() / 100.0);
-        float y = (float) (sh * posY.get() / 100.0);
-        x = (float) Math.max(2, Math.min(x, sw - totalW * s - 2));
-        y = (float) Math.max(2, Math.min(y, sh - h * s - 2));
+    @Override
+    public double getHudWidth() {
+        return keySize.get() * 3 + gap.get() * 2;
+    }
 
-        Matrix3x2fStack m = ctx.getMatrices();
-        m.pushMatrix();
-        m.translate(x, y);
-        m.scale((float) s, (float) s);
+    @Override
+    public double getHudHeight() {
+        return Math.max(1, contentHeight());
+    }
+
+    @Override
+    public boolean shouldRenderHud() {
+        update();
+        return contentHeight() > 0 && VetmoRender.shouldRender(showInScreens.get());
+    }
+
+    @Override
+    public Setting<Double> hudScale() {
+        return scale;
+    }
+
+    @Override
+    public int defaultHudX() {
+        return 4;
+    }
+
+    @Override
+    public int defaultHudY() {
+        return -4;
+    }
+
+    @Override
+    public XAnchor defaultHudXAnchor() {
+        return XAnchor.Left;
+    }
+
+    @Override
+    public YAnchor defaultHudYAnchor() {
+        return YAnchor.Bottom;
+    }
+
+    @Override
+    public void renderHud(DrawContext ctx, float tickDelta, boolean inEditor) {
+        update();
+        if (contentHeight() == 0) return;
+
+        long now = System.currentTimeMillis();
+        int lCps = cps(leftClicks, now);
+        int rCps = cps(rightClicks, now);
+        KeyBinding[] keys = keys();
+
+        int k = keySize.get();
+        int g = gap.get();
+        int totalW = k * 3 + g * 2;
 
         int cy = 0;
         if (showMovement.get()) {
@@ -296,8 +324,6 @@ public class Keystrokes extends Module {
                 drawKey(ctx, 0, cy, totalW, sh2, label(keys[7], "SHIFT"), null, anim[7]);
             }
         }
-
-        m.popMatrix();
     }
 
     private String label(KeyBinding key, String fallback) {

@@ -14,6 +14,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Cancels the vanilla (color-inverting) crosshair + attack indicator while Custom Crosshair is active.
+ * The replacement is drawn by the module's HUD element (Render2DEvent at the end of InGameHud#render).
+ * With the module off, or with F3 open, vanilla is untouched.
+ */
 @Mixin(InGameHud.class)
 public abstract class VetmoInGameHudMixin {
     // private void renderCrosshair(DrawContext, RenderTickCounter) - verified with javap (1.21.7 yarn build.1)
@@ -23,9 +28,8 @@ public abstract class VetmoInGameHudMixin {
         if (modules == null) return;
 
         CustomCrosshair crosshair = modules.get(CustomCrosshair.class);
-        if (crosshair == null || !crosshair.isActive() || !crosshair.shouldReplace()) return;
+        if (crosshair == null || !crosshair.isActive() || !crosshair.shouldCancelVanilla()) return;
 
-        crosshair.render(context, tickCounter.getTickProgress(true));
         ci.cancel();
     }
 }

@@ -52,6 +52,17 @@ public class VetmoHudElement extends HudElement {
 
     @Override
     public void render(HudRenderer renderer) {
+        try {
+            renderSafe(renderer);
+        } catch (Throwable t) {
+            // Never crash the game because of a HUD module: log, switch the module off and tell the user.
+            meteordevelopment.meteorclient.MeteorClient.LOG.error("Vetmo HUD module '{}' failed to render, disabling it", module.name, t);
+            if (module.isActive()) module.toggle();
+            meteordevelopment.meteorclient.utils.player.ChatUtils.error("%s failed to render and was disabled: %s", module.title, String.valueOf(t));
+        }
+    }
+
+    private void renderSafe(HudRenderer renderer) {
         boolean editor = isInEditor();
         double guiScale = mc.getWindow().getScaleFactor();
 

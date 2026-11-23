@@ -402,6 +402,7 @@ public class Modules extends System<Modules> {
         add(new ComboCounter());
         add(new CooldownsHud());
         add(new CustomCrosshair());
+        add(new CrosshairHpIndicator());
         add(new HitColor());
         add(new HitParticles());
         add(new Keystrokes());
