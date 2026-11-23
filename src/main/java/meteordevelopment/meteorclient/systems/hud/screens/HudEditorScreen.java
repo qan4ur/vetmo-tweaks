@@ -253,6 +253,34 @@ public class HudEditorScreen extends WidgetScreen implements Snapper.Container {
         }
     }
 
+    // Vetmo Tweaks: mouse wheel over an element changes its size
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        double s = mc.getWindow().getScaleFactor();
+        HudElement hovered = getHovered((int) (mouseX * s), (int) (mouseY * s));
+
+        if (hovered != null && verticalAmount != 0) {
+            double step = verticalAmount > 0 ? 0.05 : -0.05;
+
+            if (hovered instanceof meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHudElement vetmo) {
+                vetmo.scaleBy(step);
+                return true;
+            }
+
+            for (meteordevelopment.meteorclient.settings.SettingGroup group : hovered.settings) {
+                for (meteordevelopment.meteorclient.settings.Setting<?> setting : group) {
+                    if (setting instanceof meteordevelopment.meteorclient.settings.DoubleSetting ds && setting.name.equals("scale")) {
+                        double value = Math.round((ds.get() + step) * 100.0) / 100.0;
+                        ds.set(Math.max(ds.min, Math.min(ds.max, value)));
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
     private HudElement getHovered(int mouseX, int mouseY) {
         for (HudElement element : hud) {
             if (mouseX >= element.x && mouseX <= element.x + element.getWidth() && mouseY >= element.y && mouseY <= element.y + element.getHeight()) return element;

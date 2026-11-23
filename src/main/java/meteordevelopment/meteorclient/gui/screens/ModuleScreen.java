@@ -127,6 +127,15 @@ public class ModuleScreen extends WindowScreen {
         };
         copy.tooltip = "Copy config";
 
+        // Vetmo Tweaks: reset all settings of this module to defaults (bind is kept)
+        WButton resetAll = sharing.add(theme.button("Reset to defaults")).widget();
+        resetAll.tooltip = "Reset all settings of this module to their default values.";
+        resetAll.action = () -> {
+            module.settings.reset();
+            if (parent instanceof WidgetScreen p) p.reload();
+            reload();
+        };
+
         WButton paste = sharing.add(theme.button(GuiRenderer.PASTE)).widget();
         paste.action = this::fromClipboard;
         paste.tooltip = "Paste config";

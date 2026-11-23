@@ -130,6 +130,9 @@ public class Hud extends System<Hud> implements Iterable<HudElement> {
         register(PotionTimersHud.INFO);
         register(CombatHud.INFO);
 
+        // Vetmo Tweaks: one element type per on-screen Visuals module
+        meteordevelopment.meteorclient.systems.modules.visuals.hud.VetmoHud.register(this);
+
         // Default config
         if (isFirstInit) resetToDefaultElements();
     }
