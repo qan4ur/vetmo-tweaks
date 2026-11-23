@@ -143,7 +143,14 @@
     "YggdrasilMinecraftSessionServiceAccessor",
     "vetmo.VetmoInGameHudMixin",
     "vetmo.VetmoOverlayTextureAccessor",
-    "vetmo.VetmoPotionHudMixin"
+    "vetmo.VetmoPotionHudMixin",
+    "vetmo.VetmoSwingHeldItemRendererMixin",
+    "vetmo.VetmoSwingLivingEntityMixin",
+    "vetmo.VetmoBlockOutlineWorldRendererMixin",
+    "vetmo.VetmoGlintTextureManagerMixin",
+    "vetmo.VetmoSkyClientWorldMixin",
+    "vetmo.VetmoSkyFogRendererMixin",
+    "vetmo.VetmoWorldBorderRenderingMixin"
   ],
   "injectors": {
     "defaultRequire": 1

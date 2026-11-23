@@ -155,7 +155,8 @@ tasks {
 
     withType<JavaCompile> {
         options.release = 21
-        options.compilerArgs.addAll(listOf("-Xmaxerrs", "10000", "-Xmaxwarns", "0")) //TMP
+        options.compilerArgs.add("-Xlint:deprecation")
+        options.compilerArgs.add("-Xlint:unchecked")
     }
 
     shadowJar {
@@ -219,10 +220,3 @@ publishing {
         }
     }
 }
-
-val vetmoReady = listOf( //TMP
-    "VetmoHudRender", "VetmoRender", "ArmorHud", "ComboCounter", "CooldownsHud", "CustomCrosshair", "HitColor", "HitParticles",
-    "Keystrokes", "KillEffect", "LowHpWarning", "PotionHud", "TargetHud", "TotemPopCounter",
-    "VetmoInGameHudMixin", "VetmoOverlayTextureAccessor", "VetmoPotionHudMixin"
-) //TMP
-sourceSets.main { java { exclude { e -> val p = e.relativePath.pathString; (p.contains("modules/visuals/") || p.contains("mixin/vetmo/")) && e.file.isFile && vetmoReady.none { p.endsWith("/$it.java") } } } } //TMP

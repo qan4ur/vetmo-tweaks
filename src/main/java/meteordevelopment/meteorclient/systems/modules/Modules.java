@@ -410,5 +410,10 @@ public class Modules extends System<Modules> {
         add(new PotionHud());
         add(new TargetHud());
         add(new TotemPopCounter());
+        add(new SwingAnimations());
+        add(new BlockOutline());
+        add(new GlintColor());
+        add(new CustomSkyFog());
+        add(new WorldBorder());
     }
 }

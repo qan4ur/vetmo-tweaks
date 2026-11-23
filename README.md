@@ -1,60 +1,89 @@
+<h1 align="center">🩸 Vetmo Tweaks</h1>
 
 <p align="center">
-<img src="https://meteorclient.com/icon.png" alt="meteor-client-logo" width="15%"/>
+Визуальный PvP-мод в красном стиле «кровавая луна» для <b>Minecraft 1.21.7 (Fabric)</b>.<br>
+Форк <a href="https://github.com/MeteorDevelopment/meteor-client">Meteor Client</a> от MeteorDevelopment, распространяется по лицензии GPL-3.0.
 </p>
 
-<h1 align="center">Meteor</h1>
-<p align="center">A Minecraft Fabric Utility Mod for anarchy servers.</p>
+---
 
-<div align="center">
-    <a href="https://discord.gg/bBGQZvd"><img src="https://img.shields.io/discord/689197705683140636?logo=discord" alt="Discord"/></a>
-    <br>
-    <img src="https://img.shields.io/github/last-commit/MeteorDevelopment/meteor-client" alt="GitHub last commit"/>
-    <img src="https://img.shields.io/github/commit-activity/w/MeteorDevelopment/meteor-client" alt="GitHub commit activity"/>
-    <img src="https://img.shields.io/github/contributors/MeteorDevelopment/meteor-client" alt="GitHub contributors"/>
-    <br>
-    <img src="https://img.shields.io/github/languages/code-size/MeteorDevelopment/meteor-client" alt="GitHub code size in bytes"/>
-    <img src="https://img.shields.io/endpoint?url=https://ghloc.vercel.app/api/MeteorDevelopment/meteor-client/badge?filter=.java$&label=lines%20of%20code&color=blue" alt="GitHub lines of code"/>
-</div>
+## Что это
 
-## Usage
+Vetmo Tweaks — урезанный и перекрашенный Meteor Client. В нём оставлен только небольшой набор модулей Meteor и добавлена своя категория **Visuals**: прицел, Target HUD, эффекты ударов, HUD-панели и другие визуальные настройки.
 
-### Building
-- Clone this repository
-- Run `./gradlew build`
+Модули из категории Visuals работают только на клиенте. Они не совершают действий за игрока и не показывают ничего сверх того, что сервер и так присылает в ванилле. По сути это то же, что в Lunar или Badlion.
 
-### Installation
-Follow the [guide](https://meteorclient.com/faq/installation) on the wiki.
+- ClickGUI открывается на **правый Shift**. Тема тёмно-красная/алая, фон почти чёрный с красным оттенком.
+- Префикс команд — точка (`.bind`, `.binds`, `.toggle`, `.settings`, `.reset` и другие).
+- Конфиги лежат в папке `vetmo-tweaks` профиля игры. При первом запуске туда автоматически копируется всё из старой папки `meteor-client`: бинды, настройки, HUD, друзья, аккаунты, вейпоинты, стеши и профили. Старая папка не удаляется.
 
-## Contributions
-We will review and help with all reasonable pull requests as long as the guidelines below are met.
+## Модули
 
-- The license header must be applied to all java source code files.
-- IDE or system-related files should be added to the `.gitignore`, never committed in pull requests.
-- In general, check existing code to make sure your code matches relatively close to the code already in the project.
-- Favour readability over compactness.
-- If you need help, check out the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) for a reference.
+### Из Meteor Client
 
-## Bugs and Suggestions
-Bug reports and suggestions should be made in this repo's [issue tracker](https://github.com/MeteorDevelopment/meteor-client/issues) using the templates provided.  
-Please provide as much information as you can to best help us understand your issue and give a better chance of it being resolved.
+| Модуль | Категория |
+|---|---|
+| Auto Clicker | Player |
+| Middle Click Extra | Player |
+| Block ESP | Render |
+| Storage ESP | Render |
+| ESP | Render |
+| Tracers | Render |
+| Nametags | Render |
+| Xray | Render |
+| Freecam | Render |
+| Zoom | Render |
+| Fullbright | Render |
+| Waypoints | Render (нужен для отображения вейпоинтов) |
+| Stash Finder | World |
 
-## Donations
-All of our work is completely free and non-profit (donations pay only for hosting costs), therefore we are very grateful for all donations made to support us in running our community.  
-Donations can be made via our [website](https://meteorclient.com/donate) and the minimum amount to get donor benefits is €5.  
-You will be rewarded with a role on our Discord server and a customisable in-game cape.  
-⚠️ _Make sure to create a Meteor account and link your Discord and Minecraft accounts to fully experience your rewards._ ⚠️
+Системы Meteor тоже на месте: ClickGUI, настройки, бинды, команды, HUD, профили, друзья, вейпоинты, стеши, аккаунты и прокси. Кнопки Accounts и Proxies находятся на экране «По адресу».
 
-## Credits
-[Cabaletta](https://github.com/cabaletta) and [WagYourTail](https://github.com/wagyourtail) for [Baritone](https://github.com/cabaletta/baritone)  
-The [Fabric Team](https://github.com/FabricMC) for [Fabric](https://github.com/FabricMC/fabric-loader) and [Yarn](https://github.com/FabricMC/yarn)
+### Свои визуалы (категория Visuals)
 
-## Licensing
-This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html). 
+| Модуль | Что делает |
+|---|---|
+| Custom Crosshair | Свой прицел (крест, точка, круг, крест с точкой), цвет, толщина, обводка, разлёт под кулдаун атаки, другой цвет при наведении на игрока |
+| Target HUD | Панель цели: ник, голова скина, HP с плавной анимацией и «следом» урона, броня, дистанция |
+| Hit Color | Свой цвет и прозрачность подсветки сущности при ударе вместо ванильного красного |
+| Hit Particles | Свои частицы при ударе и крите: тип, цвет, количество |
+| Kill Effect | Эффект при убийстве игрока: молния, вспышка частиц, звук (только на клиенте) |
+| Totem Pop Counter | Счётчик попов тотема над головой и в чате, с анимацией |
+| Armor HUD | Броня и предметы в руках с прочностью в %, мигает красным при низкой прочности |
+| Potion HUD | Активные эффекты с таймерами |
+| Cooldowns HUD | Кулдауны жемчуга, хоруса, тотема, щита (то, что ванилла и так показывает) |
+| Low HP Warning | Красная пульсирующая виньетка при низком HP |
+| Keystrokes | WASD, ЛКМ/ПКМ, пробел и CPS |
+| Combo Counter | Счётчик ударов подряд |
+| Swing Animations | Положение и масштаб предмета в руке, скорость взмаха, стиль 1.7/1.8 |
+| Block Outline | Цвет и толщина обводки выбранного блока, заливка |
+| Glint Color | Цвет блеска зачарований |
+| Custom Sky/Fog | Цвет неба и тумана, время суток на клиенте |
+| World Border | Граница мира: скрыть полностью или сделать статичной (без мигания, свой цвет) |
 
-If you use **ANY** code from the source:
-- You must disclose the source code of your modified work and the source code you took from this project. This means you are not allowed to use code from this project (even partially) in a closed-source and/or obfuscated application.
-- You must state clearly and obviously to all end users that you are using code from this project.
-- Your application must also be licensed under the same license.
+## Скриншоты
 
-*If you have any other questions, check our [FAQ](https://meteorclient.com/faq) or ask in our [Discord](https://meteorclient.com/discord) server.*
+<!-- Сюда можно добавить скриншоты: ![ClickGUI](docs/clickgui.png) -->
+
+_Скоро._
+
+## Установка
+
+1. Установите [Fabric Loader](https://fabricmc.net/use/) для Minecraft **1.21.7**.
+2. Скачайте [Fabric API](https://modrinth.com/mod/fabric-api) для 1.21.7 и положите его в папку `mods`.
+3. Скачайте `vetmo-tweaks-1.21.7-1.0.0.jar` со страницы [Releases](https://github.com/qan4ur/vetmo-tweaks/releases) и положите его в папку `mods`.
+4. **Не ставьте одновременно с Meteor Client:** это два клиента на одной основе, и вместе они не запустятся.
+
+## Сборка из исходников
+
+Нужна JDK 21. Если её нет, Gradle сам скачает её через toolchain (`gradle/gradle-daemon-jvm.properties`).
+
+```
+gradlew build
+```
+
+Готовый jar появится в `build/libs` (берите файл без `-all`).
+
+## Лицензия
+
+Vetmo Tweaks — форк **[Meteor Client](https://github.com/MeteorDevelopment/meteor-client)** (© MeteorDevelopment) и распространяется по той же лицензии **GNU GPL-3.0**. Полный текст лежит в файле [LICENSE](LICENSE). Исходный код Meteor Client изменён: удалена часть модулей, добавлены свои визуальные модули, изменено оформление.

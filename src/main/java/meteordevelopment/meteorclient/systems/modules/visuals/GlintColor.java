@@ -106,8 +106,8 @@ public class GlintColor extends Module {
 
     @Override
     public void onActivate() {
+        // Built on the next tick (not here: the module can be enabled from config before the render system is up)
         dirty = true;
-        update();
     }
 
     @Override
@@ -122,6 +122,7 @@ public class GlintColor extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
+        if (mc.world == null) return;
         update();
     }
 
