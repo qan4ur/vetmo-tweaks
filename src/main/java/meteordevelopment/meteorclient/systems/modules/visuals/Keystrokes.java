@@ -197,7 +197,7 @@ public class Keystrokes extends Module {
     private final double[] anim = new double[8];
 
     public Keystrokes() {
-        super(Categories.Visuals, "Keystrokes", "Shows your movement keys, mouse buttons and CPS.");
+        super(Categories.Visuals, "keystrokes", "Shows your movement keys, mouse buttons and CPS.");
     }
 
     @Override

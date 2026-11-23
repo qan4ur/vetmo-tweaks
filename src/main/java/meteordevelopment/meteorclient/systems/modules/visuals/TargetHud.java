@@ -305,7 +305,7 @@ public class TargetHud extends Module {
     private static final EquipmentSlot[] ARMOR_SLOTS = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
     public TargetHud() {
-        super(Categories.Visuals, "Target HUD", "Shows a panel with the health and gear of the player you are fighting.");
+        super(Categories.Visuals, "target-hud", "Shows a panel with the health and gear of the player you are fighting.");
     }
 
     @Override

@@ -149,7 +149,7 @@ public class LowHpWarning extends Module {
     private double phase;
 
     public LowHpWarning() {
-        super(Categories.Visuals, "Low HP Warning", "Pulses a red vignette at the screen edges when your health is low.");
+        super(Categories.Visuals, "low-hp-warning", "Pulses a red vignette at the screen edges when your health is low.");
     }
 
     @Override

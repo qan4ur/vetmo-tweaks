@@ -197,7 +197,7 @@ public class ComboCounter extends Module {
     private double shake;
 
     public ComboCounter() {
-        super(Categories.Visuals, "Combo Counter", "Counts your consecutive landed hits.");
+        super(Categories.Visuals, "combo-counter", "Counts your consecutive landed hits.");
     }
 
     @Override
