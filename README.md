@@ -22,6 +22,7 @@ Vetmo Tweaks — урезанный и перекрашенный Meteor Client 
 
 | Модуль | Категория |
 |---|---|
+| Auto Totem | Combat |
 | Auto Clicker | Player |
 | Middle Click Extra | Player |
 | Block ESP | Render |
@@ -52,7 +53,7 @@ _Скоро._
 
 1. Установите [Fabric Loader](https://fabricmc.net/use/) для Minecraft **1.21.7**.
 2. Скачайте [Fabric API](https://modrinth.com/mod/fabric-api) для 1.21.7 и положите его в папку `mods`.
-3. Скачайте `vetmo-tweaks-1.21.7-1.2.0.jar` со страницы [Releases](https://github.com/qan4ur/vetmo-tweaks/releases) и положите его в папку `mods`.
+3. Скачайте `vetmo-tweaks-1.21.7-1.3.0.jar` со страницы [Releases](https://github.com/qan4ur/vetmo-tweaks/releases) и положите его в папку `mods`.
 4. **Не ставьте одновременно с Meteor Client:** это два клиента на одной основе, и вместе они не запустятся.
 
 ## Сборка из исходников

@@ -62,6 +62,7 @@ public class Modules extends System<Modules> {
 
     @Override
     public void init() {
+        initCombat();
         initPlayer();
         initRender();
         initWorld();
@@ -373,6 +374,10 @@ public class Modules extends System<Modules> {
 
         // Register color settings for the module
         module.settings.registerColorSettings(module);
+    }
+
+    private void initCombat() {
+        add(new meteordevelopment.meteorclient.systems.modules.combat.AutoTotem());
     }
 
     private void initPlayer() {

@@ -120,6 +120,7 @@ public final class VetmoRussian {
 
     static {
         // Categories
+        CATEGORIES.put("Combat", "Бой");
         CATEGORIES.put("Player", "Игрок");
         CATEGORIES.put("Render", "Рендер");
         CATEGORIES.put("World", "Мир");
@@ -151,6 +152,8 @@ public final class VetmoRussian {
         GROUPS.put("Tracer", "Трейсер");
 
         // Enum values (key "Value" or "EnumClass.Value" for a specific enum)
+        ENUMS.put("Smart", "Умный");
+        ENUMS.put("Strict", "Строгий");
         ENUMS.put("Disabled", "Выкл");
         ENUMS.put("Hold", "Удержание");
         ENUMS.put("Press", "Нажатие");
@@ -235,6 +238,14 @@ public final class VetmoRussian {
         ENUMS.put("Hide", "Скрыть");
 
         // ===================== Player =====================
+
+        m("auto-totem", "Автототем", "Автоматически берёт тотем во вторую руку.");
+        s("auto-totem.mode", "Режим", "Умный - тотем только при опасности. Строгий - тотем во второй руке всегда.");
+        s("auto-totem.delay", "Задержка", "Тиков между перекладываниями тотема.");
+        s("auto-totem.health", "Здоровье", "При каком здоровье брать тотем (умный режим).");
+        s("auto-totem.elytra", "Элитры", "Всегда держать тотем во время полёта на элитрах.");
+        s("auto-totem.fall", "Падение", "Брать тотем, если урон от падения может убить.");
+        s("auto-totem.explosion", "Взрывы", "Брать тотем, если урон от взрыва может убить.");
 
         m("auto-clicker", "Автокликер", "Автоматически кликает за вас.");
         s("auto-clicker.while-in-screens", "В меню", "Кликать, даже когда открыт экран или меню.");
